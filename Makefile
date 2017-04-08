@@ -57,7 +57,7 @@ DEB_DIST ?= unstable
 PBUILDER_ARCH ?= amd64
 PBUILDER_CACHE_DIR = /var/cache/pbuilder
 PBUILDER_BIN ?= pbuilder
-PBUILDER_OPTS ?= --debootstrapopts --variant=buildd --architecture $(PBUILDER_ARCH) --debbuildopts -b
+PBUILDER_OPTS ?= --debootstrapopts --variant=build --architecture $(PBUILDER_ARCH) --debbuildopts -b
 
 # RPM build parameters
 RPMSPECDIR= packaging/rpm
@@ -178,7 +178,7 @@ travis:
 		fi; \
 	done
 	@if [ "$$OFFICIAL" = 'yes' ]; then \
-		openssl aes-256-cbc -K $$encrypted_194e3b0fc15f_key -iv $$encrypted_194e3b0fc15f_iv -in codesigning.asc.enc -out codesigning.asc -d; \
+		openssl aes-256-cbc -K $$encrypted_968ddc10d0bb_key -iv $$encrypted_968ddc10d0bb_iv -in codesigning.asc.enc -out codesigning.asc -d; \
 		gpg --fast-import codesigning.asc; \
 	fi;
 	$(MAKE) DEB_DIST='xenial trusty precise' DEB_OS='Ubuntu' deb-src
@@ -201,7 +201,6 @@ docker-stop:
 	docker-compose -f packaging/docker/docker-compose.yml stop
 
 docker-down:
-	rm -f packaging/docker/tensor/tensor.deb
 	docker-compose -f packaging/docker/docker-compose.yml down
 
 docker-up:

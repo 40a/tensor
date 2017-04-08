@@ -9,11 +9,6 @@
     keyserver: hkp://keyserver.ubuntu.com:80
     id: 6125E2A8C77F2818FB7BD15B93C4A3FD7BB9C367
 
-- name: "Add proot key"
-  apt_key:
-    url: "http://download.opensuse.org/repositories/home:/cedric-vincent/xUbuntu_14.10/Release.key"
-  when: ansible_distribution == 'Ubuntu'
-
 - name: "Add proot key debian"
   apt_key:
     url: "http://download.opensuse.org/repositories/home:/cedric-vincent/Debian_7.0/Release.key"
@@ -45,9 +40,7 @@
   when: ansible_distribution == 'Debian'
 
 - apt_repository:
-    repo: "deb http://download.opensuse.org/repositories/home:/cedric-vincent/xUbuntu_14.10/ /"
-    state: present
-    filename: "proot.list"
+    repo: 'ppa:ansible/proot'
   when: ansible_distribution == 'Ubuntu'
 
 - name: Install dependencies packages
