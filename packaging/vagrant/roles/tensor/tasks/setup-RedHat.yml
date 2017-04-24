@@ -3,6 +3,10 @@
   stat: path={{ epel_repofile_path }}
   register: epel_repofile_result
 
+- name: Check if peroot repo is already configured.
+  stat: "path=/etc/yum.repos.d/proot.repo"
+  register: proot_repofile_result
+
 - name: Install EPEL repo.
   package:
     name: "{{ epel_repo_url }}"
@@ -19,8 +23,18 @@
     state: present
   when: not epel_repofile_result.stat.exists
 
-- name: "Copy proot repo"
-  template: src=cedric-vincent.repo.j2 dest=/etc/yum.repos.d/cedric-vincent.repo
+- name: Install proot repo.
+  yum_repository:
+    name: proot
+    description: copr proot repo
+    baseurl: "https://copr-be.cloud.fedoraproject.org/results/jlaska/proot/epel-7-$basearch/"
+  when: not epel_repofile_result.stat.exists
+
+- name: Import proot GPG key
+  rpm_key:
+    key: "https://copr-be.cloud.fedoraproject.org/results/jlaska/proot/pubkey.gpg"
+    state: present
+  when: not epel_repofile_result.stat.exists
 
 - name: Install dependencies packages
   package: name={{ item }} state=present

@@ -33,26 +33,30 @@ type RedisConfig struct {
 }
 
 type configType struct {
-	MongoDB MongoDBConfig `yaml:"mongodb"`
+	MongoDB             MongoDBConfig `yaml:"mongodb"`
 
-	Redis RedisConfig `yaml:"redis"`
+	Redis               RedisConfig `yaml:"redis"`
 	// Format `:port_num` eg, :3000
-	Port string `yaml:"port"`
+	Port                string `yaml:"port"`
 
 	// Tensor stores projects here
-	ProjectsHome string `yaml:"projects_home"`
+	ProjectsHome        string `yaml:"projects_home"`
 
 	// cookie hashing & encryption
-	Salt string `yaml:"salt"`
+	Salt                string `yaml:"salt"`
 
 	AnsibleJobTimeOut   int `yaml:"ansible_job_timeout"`
 	SyncJobTimeOut      int `yaml:"sync_job_timeout"`
 	TerraformJobTimeOut int `yaml:"terraform_job_timeout"`
 
-	JWTTimeout        int `yaml:"jwt_timeout"`
-	JWTRefreshTimeout int `yaml:"jwt_refresh_timeout"`
+	JWTTimeout          int `yaml:"jwt_timeout"`
+	JWTRefreshTimeout   int `yaml:"jwt_refresh_timeout"`
 
-	Debug bool `yaml:"debug"`
+	TLSEnabled          bool `yaml:"tls_enabled"`
+	SSLCertificate      string `yaml:"ssl_certificate"`
+	SSLCertificateKey   string `yaml:"ssl_certificate_key"`
+
+	Debug               bool `yaml:"debug"`
 }
 
 var Config *configType
@@ -170,6 +174,20 @@ func init() {
 		Config.Redis.Host = os.Getenv("TENSOR_REDIS_HOST")
 	}
 
+	// TLS configuration
+	if os.Getenv("TENSOR_TLS_ENABLED") == "true" {
+		Config.TLSEnabled = true
+	}
+
+	if len(os.Getenv("TENSOR_SSL_CERTIFICATE")) > 0 {
+		Config.SSLCertificate = os.Getenv("TENSOR_SSL_CERTIFICATE")
+	}
+
+	if len(os.Getenv("TENSOR_SSL_CERTIFICATE_KEY")) > 0 {
+		Config.SSLCertificateKey = os.Getenv("TENSOR_SSL_CERTIFICATE_KEY")
+	}
+
+	// Debug configuration
 	if os.Getenv("TENSOR_DEBUG") == "true" {
 		Config.Debug = true
 	}

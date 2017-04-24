@@ -12,7 +12,7 @@
   when: ansible_os_family == 'Debian'
 
 - name: Install docker compose
-  get_url: 
+  get_url:
     url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64"
     dest: /usr/local/bin/docker-compose
     mode: 0775
@@ -46,21 +46,18 @@
     - go-path.sh
     - go-bin.sh
 
-# Find a clever way to do this
-- name: Set permissions for go path
-  file: "path={{ item }} state=directory owner={{ ansible_ssh_user }} group={{ ansible_ssh_user }}"
+- name: Change user permissions to ssh_user
+  file: "path={{ item }} owner={{ ansible_user_id }} group={{ ansible_user_id }}"
   with_items:
-    - /go/
-    - /go/src/
-    - /go/src/github.com/
-    - /go/src/github.com/pearsonappeng/
+    - /vagrant
+    - /vagrant/src
+    - /vagrant/src/github.com
+    - /vagrant/src/github.com/pearsonappeng
 
 - name: Create tensor project dir
   file:
     path: /var/lib/tensor/projects/
     state: directory
-    owner: root
-    group: root
     recurse: yes
 
 - name: Copy tensor playbooks
@@ -79,10 +76,11 @@
 
 - name: Create tensor data dir
   file:
-    path: /data/tensor
+    path: "{{item}}"
     state: directory
-    owner: "{{ ansible_ssh_user }}"
-    group: "{{ ansible_ssh_user }}"
+  with_items:
+    - "{{ssl_certs_path}}"
+    - "{{tensor_projects_home}}"
 
 - name: Ensure Tensor is configured.
   template:
@@ -92,19 +90,37 @@
   notify: "Restart MongoDB"
 
 - name: Install reflex
-  become: false
   shell: go get -v github.com/cespare/reflex
   environment:
-    GOPATH: /go
+    GOPATH: /vagrant
     PATH : "{{ ansible_env.PATH }}:/go/bin:/usr/local/go/bin"
 
 - name: Update go libraries
-  become: false
-  shell: cd /go/src/github.com/pearsonappeng/tensor/ && go get -v ./...
+  shell: cd /vagrant/src/github.com/pearsonappeng/tensor && go get -v ./...
   environment:
-    GOPATH: /go
+    GOPATH: /vagrant
     PATH : "{{ ansible_env.PATH }}:/go/bin:/usr/local/go/bin"
 
-- name: Set tensor path when vagrant ssh
+- name: Navigate to vagrant path when vagrant ssh
   become: false
-  shell: 'echo "cd /go/src/github.com/pearsonappeng/tensor/" >> ~/.profile  && echo "cd /go/src/github.com/pearsonappeng/tensor/" >> ~/.bashrc'
+  shell: 'echo "cd /vagrant/src/github.com/pearsonappeng/tensor" >> ~/.profile  && echo "cd /vagrant/src/github.com/pearsonappeng/tensor" >> ~/.bashrc'
+
+- name: Generate RSA key
+  command: openssl genrsa -out {{ ssl_certs_privkey_path }} {{ ssl_certs_key_size }} creates={{ ssl_certs_privkey_path }}
+
+- name: RSA key file ownership
+  file: path={{ ssl_certs_privkey_path }} owner={{ ansible_user_id }} group={{ ansible_user_id }} mode={{ ssl_certs_mode }}
+
+- name: Generate CSR
+  command: openssl req -new -sha256 -subj "{{ ssl_certs_fields }}" -key {{ ssl_certs_privkey_path }} -out {{ ssl_certs_csr_path }} creates={{ ssl_certs_csr_path }}
+
+- name: CSR file ownership
+  file: path={{ ssl_certs_csr_path }} owner={{ ansible_user_id }} group={{ ansible_user_id }} mode={{ ssl_certs_mode }}
+
+- name: Generate self-signed SSL certificate
+  command: openssl req -nodes -x509 -sha256 -days {{ ssl_certs_days }} -in {{ ssl_certs_csr_path }} -key {{ ssl_certs_privkey_path }} -out {{ ssl_certs_cert_path }} -extensions v3_ca creates={{ ssl_certs_cert_path }}
+  when: ssl_certs_generate_self_signed
+
+- name: Self-signed SSL certificate file ownership
+  file: path={{ ssl_certs_cert_path }} owner={{ ansible_user_id }} group={{ ansible_user_id }} mode={{ ssl_certs_mode }}
+  when: ssl_certs_generate_self_signed

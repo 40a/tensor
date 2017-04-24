@@ -3,7 +3,7 @@
 - hosts: all
   become: true
   roles:
-    - dev
+    - tensor
     - mongodb
     - redis
     - terraform

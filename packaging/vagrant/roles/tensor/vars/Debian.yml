@@ -6,10 +6,10 @@ packaging_dependencies:
   - software-properties-common
 
 tensor_packages_dependencies:
-  - mercurial  # For cloning the Golang repository
-  - git        # For getting Go dependencies from GitHub
+  - mercurial
+  - git
   - python-setuptools
-  - docker-engine
+  - docker-ce
   - make
   - ruby
   - devscripts

@@ -1,0 +1,66 @@
+#Golang
+
+go_tarball: "go1.8.1.linux-amd64.tar.gz"
+go_tarball_checksum: "sha256:a579ab19d5237e263254f1eac5352efcf1d70b9dacadb6d6bb12b0911ede8994"
+go_version_target: "go version go1.8.1 linux/amd64"
+
+mongodb_host: "127.0.0.1:27017"
+mongodb_user: "tensor"
+mongodb_password: "tensor"
+mongodb_database: "tensordb"
+mongodb_replica_set: ""
+redis_host: "127.0.0.1:6379"
+tensor_port: ":8010"
+tensor_projects_home: "/vagrant/src/github.com/pearsonappeng/tensor/data"
+tensor_salt: "8m86pie1ef8bghbq41ru!de4"
+
+
+tensor_conf_path: /etc/tensor.conf
+
+docker_compose_version: 1.12.0
+
+epel_repo_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+epel_repo_gpg_key_url: "http://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+epel_repofile_path: "/etc/yum.repos.d/epel.repo"
+
+
+go_download_location: "https://storage.googleapis.com/golang/{{ go_tarball }}"
+
+inventory_plugins:
+  - azure_rm.py
+  - cloudforms.py
+  - ec2.py
+  - foreman.py
+  - gce.py
+  - openstack.py
+  - rax.py
+  - tensorrest.py
+  - vmware.py
+  - windows_azure.py
+
+python_dependencies:
+  - "azure==2.0.0rc5"
+  - pyrax
+  - apache-libcloud
+  - boto
+  - "pywinrm>=0.1.1"
+  - kerberos
+  - requests_kerberos
+
+# For SSL certificate
+ssl_certs_country: "SL"
+ssl_certs_locality: "Colombo"
+ssl_certs_organization: "Pearson Lanka"
+ssl_certs_state: "Western"
+ssl_certs_common_name: "tensor"
+ssl_certs_days: "365"
+ssl_certs_fields: "/C={{ssl_certs_country}}/ST={{ssl_certs_state}}/L={{ssl_certs_locality}}/O={{ssl_certs_organization}}/CN={{ssl_certs_common_name}}"
+
+ssl_certs_path: "/etc/ssl/{{ssl_certs_common_name}}"
+ssl_certs_privkey_path: "{{ssl_certs_path}}/{{ssl_certs_common_name}}.key"
+ssl_certs_cert_path: "{{ssl_certs_path}}/{{ssl_certs_common_name}}.pem"
+ssl_certs_csr_path: "{{ssl_certs_path}}/{{ssl_certs_common_name}}.csr"
+ssl_certs_mode: "0755"
+
+ssl_certs_generate_self_signed: true
+ssl_certs_key_size: "2048"

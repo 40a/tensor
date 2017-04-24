@@ -1,7 +1,7 @@
 /*
 Copyright 2017 Pearson, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "LICENSE"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
@@ -72,5 +72,17 @@ func main() {
 	go terraform.Run()
 	go queue.RMQCleaner()
 
-	r.Run(util.Config.Port)
+	if util.Config.TLSEnabled {
+		if err := r.RunTLS(util.Config.Port, util.Config.SSLCertificate, util.Config.SSLCertificateKey); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Error": err.Error(),
+			})
+		}
+	} else {
+		if err := r.Run(util.Config.Port); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Error": err.Error(),
+			})
+		}
+	}
 }
