@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="packaging/img/logo-tensor.png?raw=true" alt="Tensor: An Automation Platform" width="226">
+  <img src="packaging/img/logo-tensor.png?raw=true" alt="Tensor: An Automation Platform" width="200">
   <br>
   <a href="https://travis-ci.org/pearsonappeng/tensor"><img src="https://travis-ci.org/pearsonappeng/tensor.svg?branch=master" alt="Build Status"></a>
   <a href="https://codecov.io/gh/pearsonappeng/tensor"><img src="https://codecov.io/gh/pearsonappeng/tensor/branch/master/graph/badge.svg" alt="Codecov"></a>
