@@ -3,12 +3,12 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/jwt"
 	"github.com/pearsonappeng/tensor/models/common"
 	"github.com/pearsonappeng/tensor/validate"
 	"github.com/stretchr/testify/suite"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
 	"net/http"

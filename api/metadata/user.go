@@ -1,8 +1,8 @@
 package metadata
 
 import (
-	"github.com/pearsonappeng/tensor/models/common"
 	"github.com/gin-gonic/gin"
+	"github.com/pearsonappeng/tensor/models/common"
 )
 
 // Create a new organization

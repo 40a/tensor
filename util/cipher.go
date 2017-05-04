@@ -37,7 +37,7 @@ func Cipher(text string) string {
 	}
 	// The IV needs to be unique, but not secure. Therefore it's common to
 	// include it at the beginning of the ciphertext.
-	ciphertext := make([]byte, aes.BlockSize + len(plaintext))
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		logrus.Errorln("Error occurred when reading AES blocks", err.Error())
@@ -51,7 +51,7 @@ func Cipher(text string) string {
 
 // CipherDecrypt from base64 to decrypted string
 func Decipher(cryptoText string) []byte {
-	ciphertext, err := base64.URLEncoding.DecodeString(cryptoText);
+	ciphertext, err := base64.URLEncoding.DecodeString(cryptoText)
 	if err != nil {
 		logrus.Errorln("Error occurred when generating new cipher block", err.Error())
 		return ciphertext

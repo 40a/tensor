@@ -3,9 +3,9 @@ package ansible
 import (
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/models/common"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -89,16 +89,14 @@ func (h JobTemplate) GetCredential() (common.Credential, error) {
 	return cred, err
 }
 
-func (h JobTemplate) GetInventory() (Inventory, error) {
-	var inv Inventory
-	err := db.Inventories().FindId(h.InventoryID).One(&inv)
-	return inv, err
+func (h JobTemplate) Inventory() (inv Inventory, err error) {
+	err = db.Inventories().FindId(h.InventoryID).One(&inv)
+	return
 }
 
-func (jt JobTemplate) GetProject() (common.Project, error) {
-	var prj common.Project
-	err := db.Projects().FindId(jt.ProjectID).One(&prj)
-	return prj, err
+func (jt JobTemplate) Project() (prj common.Project, err error) {
+	err = db.Projects().FindId(jt.ProjectID).One(&prj)
+	return
 }
 
 func (h JobTemplate) GetNetworkCredential() (common.Credential, error) {

@@ -1,12 +1,12 @@
 package util
 
 import (
-	"github.com/stretchr/testify/suite"
-	"testing"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/suite"
+	"gopkg.in/mgo.v2/bson"
 	"net/http"
 	"net/url"
-	"gopkg.in/mgo.v2/bson"
+	"testing"
 )
 
 type QueryTestSuite struct {
@@ -19,7 +19,7 @@ func (suite *QueryTestSuite) TestNewQueryParser() {
 
 	c := &gin.Context{
 		Request: &http.Request{
-			Form:values,
+			Form: values,
 		},
 	}
 	parser := NewQueryParser(c)
@@ -74,7 +74,7 @@ func (suite *QueryTestSuite) TestExact() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: "^test$", Options: ""}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: "^test$", Options: ""}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: "^test2$", Options: ""}},
 	}, parser.Exact(fields, query), "Exact should be equal")
 }
@@ -93,7 +93,7 @@ func (suite *QueryTestSuite) TestIExact() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: "^test$", Options: "i"}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: "^test$", Options: "i"}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: "^test2$", Options: "i"}},
 	}, parser.IExact(fields, query), "IExact should be equal")
 }
@@ -112,7 +112,7 @@ func (suite *QueryTestSuite) TestContains() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: ".*test.*", Options: ""}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: ".*test.*", Options: ""}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: ".*test2.*", Options: ""}},
 	}, parser.Contains(fields, query), "Contains should be equal")
 }
@@ -131,7 +131,7 @@ func (suite *QueryTestSuite) TestIContains() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: ".*test.*", Options: "i"}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: ".*test.*", Options: "i"}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: ".*test2.*", Options: "i"}},
 	}, parser.IContains(fields, query), "IContains should be equal")
 }
@@ -150,7 +150,7 @@ func (suite *QueryTestSuite) TestStartswith() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: "^test", Options: ""}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: "^test", Options: ""}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: "^test2", Options: ""}},
 	}, parser.Startswith(fields, query), "Startswith should be equal")
 }
@@ -169,7 +169,7 @@ func (suite *QueryTestSuite) TestIStartswith() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: "^test", Options: "i"}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: "^test", Options: "i"}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: "^test2", Options: "i"}},
 	}, parser.IStartswith(fields, query), "Startswith should be equal")
 }
@@ -188,7 +188,7 @@ func (suite *QueryTestSuite) TestEndswith() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: "test$", Options: ""}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: "test$", Options: ""}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: "test2$", Options: ""}},
 	}, parser.Endswith(fields, query), "Startswith should be equal")
 }
@@ -207,7 +207,7 @@ func (suite *QueryTestSuite) TestIEndswith() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$regex": bson.RegEx{Pattern: "test$", Options: "i"}},
+		"param1": bson.M{"$regex": bson.RegEx{Pattern: "test$", Options: "i"}},
 		"param2": bson.M{"$regex": bson.RegEx{Pattern: "test2$", Options: "i"}},
 	}, parser.IEndswith(fields, query), "Startswith should be equal")
 }
@@ -226,7 +226,7 @@ func (suite *QueryTestSuite) TestGt() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$gt": "test"},
+		"param1": bson.M{"$gt": "test"},
 		"param2": bson.M{"$gt": "test2"},
 	}, parser.Gt(fields, query), "Gt should be equal")
 }
@@ -245,7 +245,7 @@ func (suite *QueryTestSuite) TestGte() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$gte": "test"},
+		"param1": bson.M{"$gte": "test"},
 		"param2": bson.M{"$gte": "test2"},
 	}, parser.Gte(fields, query), "Gt should be equal")
 }
@@ -264,7 +264,7 @@ func (suite *QueryTestSuite) TestLt() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$lt": "test"},
+		"param1": bson.M{"$lt": "test"},
 		"param2": bson.M{"$lt": "test2"},
 	}, parser.Lt(fields, query), "lt should be equal")
 }
@@ -283,7 +283,7 @@ func (suite *QueryTestSuite) TestLte() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$lte": "test"},
+		"param1": bson.M{"$lte": "test"},
 		"param2": bson.M{"$lte": "test2"},
 	}, parser.Lte(fields, query), "Lte should be equal")
 }
@@ -302,7 +302,7 @@ func (suite *QueryTestSuite) TestIsNull() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$or": bson.M{"param1": nil, "$exists": false}},
+		"param1": bson.M{"$or": bson.M{"param1": nil, "$exists": false}},
 		"param2": bson.M{"$or": bson.M{"param2": nil, "$exists": false}},
 	}, parser.IsNull(fields, query), "IsNull should be equal")
 }
@@ -321,7 +321,7 @@ func (suite *QueryTestSuite) TestIn() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$in": []string{"test", "test", "test"}},
+		"param1": bson.M{"$in": []string{"test", "test", "test"}},
 		"param2": bson.M{"$in": []string{"test2", "test2"}},
 	}, parser.In(fields, query), "In should be equal")
 }
@@ -340,7 +340,7 @@ func (suite *QueryTestSuite) TestEq() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$eq": "test"},
+		"param1": bson.M{"$eq": "test"},
 		"param2": bson.M{"$eq": "test2"},
 	}, parser.Eq(fields, query), "Eq should be equal")
 }
@@ -359,7 +359,7 @@ func (suite *QueryTestSuite) TestNe() {
 	parser := NewQueryParser(c)
 
 	suite.Equal(bson.M{
-		"param1":  bson.M{"$ne": "test"},
+		"param1": bson.M{"$ne": "test"},
 		"param2": bson.M{"$ne": "test2"},
 	}, parser.Ne(fields, query), "Ne should be equal")
 }

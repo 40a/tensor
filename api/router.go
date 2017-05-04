@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/cors"
 	"github.com/pearsonappeng/tensor/jwt"
 	"github.com/pearsonappeng/tensor/models/common"
 	"github.com/pearsonappeng/tensor/util"
-	"github.com/gin-gonic/gin"
 )
 
 // Route defines all API endpoints

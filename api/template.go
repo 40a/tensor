@@ -15,6 +15,7 @@ import (
 	"github.com/pearsonappeng/tensor/models/common"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/exec/sync"
 	"github.com/pearsonappeng/tensor/exec/types"
 	"github.com/pearsonappeng/tensor/log/activity"
@@ -22,7 +23,6 @@ import (
 	"github.com/pearsonappeng/tensor/rbac"
 	"github.com/pearsonappeng/tensor/util"
 	"github.com/pearsonappeng/tensor/validate"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
 	"os"
@@ -30,7 +30,7 @@ import (
 
 // Keys for credential related items stored in the Gin Context
 const (
-	cJobTemplate = "job_template"
+	cJobTemplate   = "job_template"
 	cJobTemplateID = "job_template_id"
 )
 
@@ -127,7 +127,36 @@ func (ctrl JobTemplateController) All(c *gin.Context) {
 	var jobTemplates []ansible.JobTemplate
 	iter := query.Iter()
 	var tmpJobTemplate ansible.JobTemplate
+	// get organization id parameter
+	qOrg := parser.RawQuery("organization")
+
 	for iter.Next(&tmpJobTemplate) {
+
+		// owner organization of the job template is can be project / inventory
+		// skip if the project organization doesn't match
+		if len(qOrg) > 0 {
+			proj, err := tmpJobTemplate.Project()
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"Error": err.Error(),
+				})
+				continue
+			}
+
+			inv, err := tmpJobTemplate.Inventory()
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"Error": err.Error(),
+				})
+				continue
+			}
+
+			if qOrg != proj.OrganizationID.Hex() && qOrg != inv.OrganizationID.Hex() {
+				continue
+			}
+
+		}
+
 		if !roles.Read(user, tmpJobTemplate) {
 			continue
 		}

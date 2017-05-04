@@ -2,10 +2,10 @@ package metadata
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/models/ansible"
 	"github.com/pearsonappeng/tensor/models/common"
-	"github.com/gin-gonic/gin"
 )
 
 // Create a new organization

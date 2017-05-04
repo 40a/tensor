@@ -2,10 +2,10 @@ package terraform
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/models/common"
 	"github.com/pearsonappeng/tensor/models/terraform"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/mgo.v2/bson"
 )
 

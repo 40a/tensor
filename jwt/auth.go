@@ -1,9 +1,9 @@
 package jwt
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/models/common"
-	"github.com/gin-gonic/gin"
 
 	"net/mail"
 	"strings"

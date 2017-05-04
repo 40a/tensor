@@ -119,7 +119,7 @@ func Sync(j types.SyncJob) {
 	}
 
 	var timer *time.Timer
-	timer = time.AfterFunc(time.Duration(util.Config.SyncJobTimeOut) * time.Second, func() {
+	timer = time.AfterFunc(time.Duration(util.Config.SyncJobTimeOut)*time.Second, func() {
 		logrus.Println("Killing the process. Execution exceeded threashold value")
 		cmd.Process.Kill()
 	})
@@ -183,7 +183,7 @@ func getCmd(j *types.SyncJob, socket string, pid int) (*exec.Cmd, error) {
 }
 
 func createJobDirs(j types.SyncJob) {
-	if err := os.MkdirAll(util.Config.ProjectsHome + "/" + j.Job.ProjectID.Hex(), 0770); err != nil {
+	if err := os.MkdirAll(util.Config.ProjectsHome+"/"+j.Job.ProjectID.Hex(), 0770); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"Dir":   util.Config.ProjectsHome + "/" + j.Job.ProjectID.Hex(),
 			"Error": err.Error(),

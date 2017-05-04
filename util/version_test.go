@@ -1,10 +1,10 @@
 package util
 
 import (
-	"testing"
-	"io/ioutil"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"strings"
+	"testing"
 )
 
 func TestVersion(t *testing.T) {

@@ -1,8 +1,8 @@
 package util
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestUniqueNew(t *testing.T) {

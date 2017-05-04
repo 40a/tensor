@@ -21,10 +21,10 @@ import (
 	"github.com/pearsonappeng/tensor/queue"
 	"github.com/pearsonappeng/tensor/ssh"
 	"github.com/pearsonappeng/tensor/util"
-	"path/filepath"
 	"github.com/rodaine/hclencoder"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 )
 
 // Consumer is implementation of rmq.Consumer interface
@@ -75,7 +75,7 @@ func (consumer *Consumer) Consume(delivery rmq.Delivery) {
 func Run() {
 	q := queue.OpenTerraformQueue()
 
-	q.StartConsuming(1, 500 * time.Millisecond)
+	q.StartConsuming(1, 500*time.Millisecond)
 	q.AddConsumer(util.UniqueNew(), NewConsumer(1))
 }
 
@@ -267,7 +267,7 @@ func terraformRun(j *types.TerraformJob) {
 		return
 	}
 	var timer *time.Timer
-	timer = time.AfterFunc(time.Duration(util.Config.TerraformJobTimeOut) * time.Second, func() {
+	timer = time.AfterFunc(time.Duration(util.Config.TerraformJobTimeOut)*time.Second, func() {
 		logrus.Println("Killing the process. Execution exceeded threashold value")
 		cmd.Process.Kill()
 	})
@@ -402,28 +402,32 @@ func getCmd(j *types.TerraformJob, socket string, pid int) (cmd *exec.Cmd, getCm
 
 func buildParams(j *types.TerraformJob, params []string) []string {
 	switch j.Job.JobType {
-	case "apply": {
-		params = append(params, "apply", "-input=false")
-		break
-	}
-	case "plan": {
-		params = append(params, "plan", "-input=false")
-		break
-	}
-	case "destroy": {
-		params = append(params, "destroy", "-force", "-target", j.Job.Target)
-		if len(j.Job.Directory) > 0 {
-			params = append(params, j.Job.Directory)
+	case "apply":
+		{
+			params = append(params, "apply", "-input=false")
+			break
 		}
-		return params
-	}
-	case "destroy_plan": {
-		params = append(params, "plan", "-destory")
-		if len(j.Job.Directory) > 0 {
-			params = append(params, j.Job.Directory)
+	case "plan":
+		{
+			params = append(params, "plan", "-input=false")
+			break
 		}
-		return params
-	}
+	case "destroy":
+		{
+			params = append(params, "destroy", "-force", "-target", j.Job.Target)
+			if len(j.Job.Directory) > 0 {
+				params = append(params, j.Job.Directory)
+			}
+			return params
+		}
+	case "destroy_plan":
+		{
+			params = append(params, "plan", "-destory")
+			if len(j.Job.Directory) > 0 {
+				params = append(params, j.Job.Directory)
+			}
+			return params
+		}
 	}
 
 	// extra variables -e EXTRA_VARS, --extra-vars=EXTRA_VARS
@@ -435,14 +439,14 @@ func buildParams(j *types.TerraformJob, params []string) []string {
 			}).Errorln("Could not marshal extra vars")
 		}
 
-		path := path.Join(j.Paths.TmpRand, uniuri.NewLen(5) + ".tfvars")
+		path := path.Join(j.Paths.TmpRand, uniuri.NewLen(5)+".tfvars")
 		if err := ioutil.WriteFile(path, vars, 0600); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"Error": err,
 			}).Errorln("Could not write extra vars to a variable file")
 		}
 
-		params = append(params, "-var-file=" + path)
+		params = append(params, "-var-file="+path)
 	}
 
 	if len(j.Job.Directory) > 0 {

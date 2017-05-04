@@ -10,11 +10,11 @@ import (
 
 	"strconv"
 
+	"encoding/base64"
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/securecookie"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
-	"encoding/base64"
 )
 
 var InteractiveSetup bool
@@ -33,30 +33,30 @@ type RedisConfig struct {
 }
 
 type configType struct {
-	MongoDB             MongoDBConfig `yaml:"mongodb"`
+	MongoDB MongoDBConfig `yaml:"mongodb"`
 
-	Redis               RedisConfig `yaml:"redis"`
+	Redis RedisConfig `yaml:"redis"`
 	// Format `:port_num` eg, :3000
-	Port                string `yaml:"port"`
+	Port string `yaml:"port"`
 
 	// Tensor stores projects here
-	ProjectsHome        string `yaml:"projects_home"`
+	ProjectsHome string `yaml:"projects_home"`
 
 	// cookie hashing & encryption
-	Salt                string `yaml:"salt"`
+	Salt string `yaml:"salt"`
 
 	AnsibleJobTimeOut   int `yaml:"ansible_job_timeout"`
 	SyncJobTimeOut      int `yaml:"sync_job_timeout"`
 	TerraformJobTimeOut int `yaml:"terraform_job_timeout"`
 
-	JWTTimeout          int `yaml:"jwt_timeout"`
-	JWTRefreshTimeout   int `yaml:"jwt_refresh_timeout"`
+	JWTTimeout        int `yaml:"jwt_timeout"`
+	JWTRefreshTimeout int `yaml:"jwt_refresh_timeout"`
 
-	TLSEnabled          bool `yaml:"tls_enabled"`
-	SSLCertificate      string `yaml:"ssl_certificate"`
-	SSLCertificateKey   string `yaml:"ssl_certificate_key"`
+	TLSEnabled        bool   `yaml:"tls_enabled"`
+	SSLCertificate    string `yaml:"ssl_certificate"`
+	SSLCertificateKey string `yaml:"ssl_certificate_key"`
 
-	Debug               bool `yaml:"debug"`
+	Debug bool `yaml:"debug"`
 }
 
 var Config *configType

@@ -1,9 +1,9 @@
 package util
 
 import (
+	"github.com/gin-gonic/gin"
 	"strings"
 	"testing"
-	"github.com/gin-gonic/gin"
 )
 
 func newServer() *gin.Engine {

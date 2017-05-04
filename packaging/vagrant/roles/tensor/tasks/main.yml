@@ -47,7 +47,7 @@
     - go-bin.sh
 
 - name: Change user permissions to ssh_user
-  file: "path={{ item }} owner={{ ansible_user_id }} group={{ ansible_user_id }}"
+  file: "path={{ item }} owner={{ ansible_user }} group={{ ansible_real_group_id }}"
   with_items:
     - /vagrant
     - /vagrant/src
@@ -90,12 +90,14 @@
   notify: "Restart MongoDB"
 
 - name: Install reflex
+  become: false
   shell: go get -v github.com/cespare/reflex
   environment:
     GOPATH: /vagrant
     PATH : "{{ ansible_env.PATH }}:/go/bin:/usr/local/go/bin"
 
 - name: Update go libraries
+  become: false
   shell: cd /vagrant/src/github.com/pearsonappeng/tensor && go get -v ./...
   environment:
     GOPATH: /vagrant
@@ -109,18 +111,18 @@
   command: openssl genrsa -out {{ ssl_certs_privkey_path }} {{ ssl_certs_key_size }} creates={{ ssl_certs_privkey_path }}
 
 - name: RSA key file ownership
-  file: path={{ ssl_certs_privkey_path }} owner={{ ansible_user_id }} group={{ ansible_user_id }} mode={{ ssl_certs_mode }}
+  file: path={{ ssl_certs_privkey_path }} owner={{ ansible_user }} group={{ ansible_real_group_id }} mode={{ ssl_certs_mode }}
 
 - name: Generate CSR
   command: openssl req -new -sha256 -subj "{{ ssl_certs_fields }}" -key {{ ssl_certs_privkey_path }} -out {{ ssl_certs_csr_path }} creates={{ ssl_certs_csr_path }}
 
 - name: CSR file ownership
-  file: path={{ ssl_certs_csr_path }} owner={{ ansible_user_id }} group={{ ansible_user_id }} mode={{ ssl_certs_mode }}
+  file: path={{ ssl_certs_csr_path }} owner={{ ansible_user }} group={{ ansible_real_group_id }} mode={{ ssl_certs_mode }}
 
 - name: Generate self-signed SSL certificate
   command: openssl req -nodes -x509 -sha256 -days {{ ssl_certs_days }} -in {{ ssl_certs_csr_path }} -key {{ ssl_certs_privkey_path }} -out {{ ssl_certs_cert_path }} -extensions v3_ca creates={{ ssl_certs_cert_path }}
   when: ssl_certs_generate_self_signed
 
 - name: Self-signed SSL certificate file ownership
-  file: path={{ ssl_certs_cert_path }} owner={{ ansible_user_id }} group={{ ansible_user_id }} mode={{ ssl_certs_mode }}
+  file: path={{ ssl_certs_cert_path }} owner={{ ansible_user }} group={{ ansible_real_group_id }} mode={{ ssl_certs_mode }}
   when: ssl_certs_generate_self_signed

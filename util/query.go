@@ -39,6 +39,10 @@ func (p *QueryParser) OrderBy() string {
 	return p.context.Query(OrderParam)
 }
 
+func (p *QueryParser) RawQuery(field string) string {
+	return p.context.Query(field)
+}
+
 // Match adds equality condition to match an exact match
 func (p *QueryParser) Match(s []string, query bson.M) bson.M {
 	for i := range s {
@@ -267,7 +271,7 @@ func (p *QueryParser) IsNull(fields []string, query bson.M) bson.M {
 		ic := fields[i] + "__isnull"
 		if ar := p.From[ic]; len(ar) > 0 {
 			for range ar {
-				query[fields[i]] = bson.M{ "$or": bson.M{fields[i]: nil, "$exists": false}}
+				query[fields[i]] = bson.M{"$or": bson.M{fields[i]: nil, "$exists": false}}
 			}
 		}
 	}

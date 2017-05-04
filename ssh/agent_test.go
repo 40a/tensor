@@ -4,13 +4,14 @@ package ssh
 
 import (
 	"github.com/stretchr/testify/suite"
-	"testing"
 	"os"
+	"testing"
 )
 
 type AgentTestSuite struct {
 	suite.Suite
 }
+
 func (suite *AgentTestSuite) TestAgent() {
 	client, socket, pid, clean := StartAgent()
 
