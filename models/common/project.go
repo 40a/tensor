@@ -3,8 +3,8 @@ package common
 import (
 	"time"
 
-	"github.com/pearsonappeng/tensor/db"
 	"github.com/gin-gonic/gin"
+	"github.com/pearsonappeng/tensor/db"
 	"gopkg.in/mgo.v2/bson"
 )
 

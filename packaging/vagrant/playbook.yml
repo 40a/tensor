@@ -2,6 +2,7 @@
 
 - hosts: all
   become: true
+  remote_user: vagrant
   roles:
     - tensor
     - mongodb

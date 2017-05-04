@@ -1,8 +1,8 @@
 package util
 
 import (
-	"net/http/pprof"
 	"github.com/gin-gonic/gin"
+	"net/http/pprof"
 	"strings"
 )
 

@@ -10,22 +10,22 @@ import (
 	"github.com/pearsonappeng/tensor/models/common"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/log/activity"
+	"github.com/pearsonappeng/tensor/models/ansible"
+	"github.com/pearsonappeng/tensor/models/terraform"
 	"github.com/pearsonappeng/tensor/rbac"
 	"github.com/pearsonappeng/tensor/util"
 	"github.com/pearsonappeng/tensor/validate"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
-	"github.com/pearsonappeng/tensor/models/ansible"
-	"github.com/pearsonappeng/tensor/models/terraform"
 )
 
 const (
-	cUserA = "_user"
+	cUserA  = "_user"
 	cUserID = "user_id"
-	cUser = "user"
+	cUser   = "user"
 )
 
 type UserController struct{}

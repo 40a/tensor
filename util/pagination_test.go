@@ -1,12 +1,12 @@
 package util
 
 import (
-	"github.com/stretchr/testify/suite"
-	"testing"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/suite"
+	"math/rand"
 	"net/http"
 	"net/url"
-	"math/rand"
+	"testing"
 )
 
 type PaginationTestSuite struct {
@@ -26,8 +26,8 @@ func (suite *PaginationTestSuite) TestNewQueryParser() {
 	pagination := NewPagination(c, len(elems))
 
 	suite.Equal(&Pagination{
-		page: 3,
-		limit: 100,
+		page:      3,
+		limit:     100,
 		itemCount: 16,
 	}, pagination, "Pagination should be equal")
 }
@@ -89,7 +89,7 @@ func (suite *PaginationTestSuite) TestPageParser() {
 	suite.Equal(1, pageParser("-3"), "Page should be equal")
 }
 
-func (suite *PaginationTestSuite) TestTotalPages()  {
+func (suite *PaginationTestSuite) TestTotalPages() {
 	c := &gin.Context{
 		Request: &http.Request{
 			URL: &url.URL{
@@ -105,7 +105,7 @@ func (suite *PaginationTestSuite) TestTotalPages()  {
 
 }
 
-func (suite *PaginationTestSuite) TestNextPage()  {
+func (suite *PaginationTestSuite) TestNextPage() {
 	c := &gin.Context{
 		Request: &http.Request{
 			URL: &url.URL{
@@ -121,7 +121,7 @@ func (suite *PaginationTestSuite) TestNextPage()  {
 
 }
 
-func (suite *PaginationTestSuite) TestPreviousPage()  {
+func (suite *PaginationTestSuite) TestPreviousPage() {
 	c := &gin.Context{
 		Request: &http.Request{
 			URL: &url.URL{
@@ -137,7 +137,7 @@ func (suite *PaginationTestSuite) TestPreviousPage()  {
 
 }
 
-func (suite *PaginationTestSuite) TestHasPage()  {
+func (suite *PaginationTestSuite) TestHasPage() {
 	c := &gin.Context{
 		Request: &http.Request{
 			URL: &url.URL{
@@ -178,7 +178,7 @@ func (suite *PaginationTestSuite) TestHasPage()  {
 
 }
 
-func (suite *PaginationTestSuite) TestSkip()  {
+func (suite *PaginationTestSuite) TestSkip() {
 	c := &gin.Context{
 		Request: &http.Request{
 			URL: &url.URL{
@@ -193,7 +193,7 @@ func (suite *PaginationTestSuite) TestSkip()  {
 
 }
 
-func (suite *PaginationTestSuite) TestEnd()  {
+func (suite *PaginationTestSuite) TestEnd() {
 	c := &gin.Context{
 		Request: &http.Request{
 			URL: &url.URL{
@@ -207,6 +207,7 @@ func (suite *PaginationTestSuite) TestEnd()  {
 	suite.Equal(15, pagination.End(), "End should be equal")
 
 }
+
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
 func TestPaginationTestSuite(t *testing.T) {

@@ -3,9 +3,9 @@ package api
 import (
 	"errors"
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/models/common"
 	"github.com/pearsonappeng/tensor/util"
-	"github.com/gin-gonic/gin"
 	"net/http"
 )
 

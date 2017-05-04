@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/api/metadata"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/models/ansible"
@@ -12,7 +13,6 @@ import (
 	"github.com/pearsonappeng/tensor/models/terraform"
 	"github.com/pearsonappeng/tensor/rbac"
 	"github.com/pearsonappeng/tensor/util"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/mgo.v2/bson"
 )
 

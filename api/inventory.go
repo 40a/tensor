@@ -13,18 +13,18 @@ import (
 	"github.com/pearsonappeng/tensor/models/common"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/log/activity"
 	"github.com/pearsonappeng/tensor/rbac"
 	"github.com/pearsonappeng/tensor/util"
 	"github.com/pearsonappeng/tensor/validate"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
 )
 
 // Keys for credential related items stored in the Gin Context
 const (
-	cInventory = "inventory"
+	cInventory   = "inventory"
 	cInventoryID = "inventory_id"
 )
 

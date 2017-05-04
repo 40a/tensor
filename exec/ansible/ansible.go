@@ -87,7 +87,7 @@ func (consumer *Consumer) Consume(delivery rmq.Delivery) {
 func Run() {
 	q := queue.OpenAnsibleQueue()
 
-	q.StartConsuming(1, 500 * time.Millisecond)
+	q.StartConsuming(1, 500*time.Millisecond)
 	q.AddConsumer(util.UniqueNew(), NewConsumer(1))
 }
 
@@ -270,7 +270,7 @@ func ansibleRun(j *types.AnsibleJob) {
 	}
 
 	var timer *time.Timer
-	timer = time.AfterFunc(time.Duration(util.Config.AnsibleJobTimeOut) * time.Second, func() {
+	timer = time.AfterFunc(time.Duration(util.Config.AnsibleJobTimeOut)*time.Second, func() {
 		logrus.Println("Killing the process. Execution exceeded threashold value")
 		cmd.Process.Kill()
 	})
@@ -325,7 +325,7 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		}
 		pPlaybook = append(pPlaybook, "-u", uname)
 		if len(j.Machine.Password) > 0 && j.Machine.Kind == common.CredentialKindSSH {
-			pSecure = append(pSecure, "-e", "ansible_ssh_pass=" + string(util.Decipher(j.Machine.Password)) + "")
+			pSecure = append(pSecure, "-e", "ansible_ssh_pass="+string(util.Decipher(j.Machine.Password))+"")
 		}
 		// if credential type is windows the issue a kinit to acquire a kerberos ticket
 		if len(j.Machine.Password) > 0 && j.Machine.Kind == common.CredentialKindWIN {
@@ -337,15 +337,15 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		pPlaybook = append(pPlaybook, "-b")
 		// default become method is sudo
 		if len(j.Machine.BecomeMethod) > 0 {
-			pPlaybook = append(pPlaybook, "--become-method=" + j.Machine.BecomeMethod)
+			pPlaybook = append(pPlaybook, "--become-method="+j.Machine.BecomeMethod)
 		}
 		// default become user is root
 		if len(j.Machine.BecomeUsername) > 0 {
-			pPlaybook = append(pPlaybook, "--become-user=" + j.Machine.BecomeUsername)
+			pPlaybook = append(pPlaybook, "--become-user="+j.Machine.BecomeUsername)
 		}
 		// for now this is more convenient than --ask-become-pass with sshpass
 		if len(j.Machine.BecomePassword) > 0 {
-			pSecure = append(pSecure, "-e", "'ansible_become_pass=" + string(util.Decipher(j.Machine.BecomePassword)) + "'")
+			pSecure = append(pSecure, "-e", "'ansible_become_pass="+string(util.Decipher(j.Machine.BecomePassword))+"'")
 		}
 	}
 	// add proot and ansible parameters
@@ -499,14 +499,14 @@ func buildParams(j types.AnsibleJob, params []string) []string {
 	}
 	// --skip-tags=SKIP_TAGS
 	if len(j.Job.SkipTags) > 0 {
-		params = append(params, "--skip-tags=" + j.Job.SkipTags)
+		params = append(params, "--skip-tags="+j.Job.SkipTags)
 	}
 	// --force-handlers
 	if j.Job.ForceHandlers {
 		params = append(params, "--force-handlers")
 	}
 	if len(j.Job.StartAtTask) > 0 {
-		params = append(params, "--start-at-task=" + j.Job.StartAtTask)
+		params = append(params, "--start-at-task="+j.Job.StartAtTask)
 	}
 	extras := map[string]interface{}{
 		"tensor_job_template_name": j.Template.Name,

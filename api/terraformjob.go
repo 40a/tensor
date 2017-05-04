@@ -10,9 +10,9 @@ import (
 	"github.com/pearsonappeng/tensor/models/terraform"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/rbac"
 	"github.com/pearsonappeng/tensor/util"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/mgo.v2/bson"
 )
 

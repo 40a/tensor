@@ -17,11 +17,11 @@ import (
 	"github.com/pearsonappeng/tensor/models/common"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/log/activity"
 	"github.com/pearsonappeng/tensor/rbac"
 	"github.com/pearsonappeng/tensor/util"
 	"github.com/pearsonappeng/tensor/validate"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
 	"path"
@@ -29,7 +29,7 @@ import (
 
 // Keys for project related items stored in the Gin Context
 const (
-	cProject = "project"
+	cProject   = "project"
 	cProjectID = "project_id"
 )
 
@@ -398,7 +398,7 @@ func (ctrl ProjectController) Playbooks(c *gin.Context) {
 		if !f.IsDir() {
 			r, err := regexp.MatchString(".yml|.yaml|.json", f.Name())
 			if err == nil && r {
-				files = append(files, strings.TrimPrefix(path, project.LocalPath + "/"))
+				files = append(files, strings.TrimPrefix(path, project.LocalPath+"/"))
 			}
 		}
 		return nil

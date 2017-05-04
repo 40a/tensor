@@ -17,12 +17,12 @@ import (
 	"github.com/pearsonappeng/tensor/models/terraform"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/log/activity"
 	"github.com/pearsonappeng/tensor/queue"
 	"github.com/pearsonappeng/tensor/rbac"
 	"github.com/pearsonappeng/tensor/util"
 	"github.com/pearsonappeng/tensor/validate"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
 	"os"
@@ -30,7 +30,7 @@ import (
 
 // Keys for credential related items stored in the Gin Context
 const (
-	cTerraformJobTemplate = "terraform_job_template"
+	cTerraformJobTemplate   = "terraform_job_template"
 	cTerraformJobTemplateID = "terraform_job_template_id"
 )
 
@@ -125,7 +125,29 @@ func (ctrl TJobTmplController) All(c *gin.Context) {
 	var jobTemplates []terraform.JobTemplate
 	iter := query.Iter()
 	var tmpJobTemplate terraform.JobTemplate
+
+	// get organization id parameter
+	qOrg := parser.RawQuery("organization")
+
 	for iter.Next(&tmpJobTemplate) {
+
+		// owner organization of the terraform job template is can be project
+		// skip if the project organization doesn't match
+		if len(qOrg) > 0 {
+			proj, err := tmpJobTemplate.Project()
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"Error": err.Error(),
+				})
+				continue
+			}
+
+			if qOrg != proj.OrganizationID.Hex() {
+				continue
+			}
+
+		}
+
 		if !roles.Read(user, tmpJobTemplate) {
 			continue
 		}
@@ -591,7 +613,7 @@ func (ctrl TJobTmplController) Launch(c *gin.Context) {
 		UpdateOnLaunch:      template.UpdateOnLaunch,
 		MachineCredentialID: template.MachineCredentialID,
 		JobTemplateID:       template.ID,
-		Target: 	     template.Target,
+		Target:              template.Target,
 		ProjectID:           template.ProjectID,
 		NetworkCredentialID: template.NetworkCredentialID,
 		CloudCredentialID:   template.CloudCredentialID,
@@ -604,7 +626,7 @@ func (ctrl TJobTmplController) Launch(c *gin.Context) {
 		PromptJobType:       template.PromptJobType,
 		PromptVariables:     template.PromptVariables,
 		AllowSimultaneous:   template.AllowSimultaneous,
-		Directory: template.Directory,
+		Directory:           template.Directory,
 	}
 
 	// if prompt is true override Job template

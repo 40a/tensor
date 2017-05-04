@@ -13,13 +13,12 @@ import (
 
 // Activity constants
 const (
-	Create = "create"
-	Update = "update"
-	Delete = "delete"
-	Associate = "associate"
+	Create       = "create"
+	Update       = "update"
+	Delete       = "delete"
+	Associate    = "associate"
 	Disassociate = "disassociate"
 )
-
 
 // AddOrganizationActivity is responsible of creating new activity stream
 // for Organization related activities
@@ -28,7 +27,7 @@ func AddActivity(operation string, userID bson.ObjectId, object1, object2 interf
 		ID:        bson.NewObjectId(),
 		Timestamp: time.Now(),
 		Operation: operation,
-		ActorID:userID,
+		ActorID:   userID,
 	}
 
 	changes := map[string]interface{}{}
@@ -48,13 +47,15 @@ func AddActivity(operation string, userID bson.ObjectId, object1, object2 interf
 						if len(tag) > 0 && tag != "-" {
 							switch v1.Type().Field(i).Name {
 							case "SSHKeyData", "SSHKeyUnlock", "Password", "Secret", "AuthorizePassword",
-								"SecurityToken": {
-								changes[tag] = "$encrypted$"
-								break
-							}
-							default: {
-								changes[tag] = v2.Field(i).Interface()
-							}
+								"SecurityToken":
+								{
+									changes[tag] = "$encrypted$"
+									break
+								}
+							default:
+								{
+									changes[tag] = v2.Field(i).Interface()
+								}
 							}
 						}
 					}

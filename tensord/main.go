@@ -6,13 +6,14 @@ Licensed under the Apache License, Version 2.0 (the "LICENSE"); you may not use 
 http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
- */
+*/
 package main
 
 import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/api"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/exec/ansible"
@@ -21,7 +22,6 @@ import (
 	"github.com/pearsonappeng/tensor/queue"
 	"github.com/pearsonappeng/tensor/util"
 	"github.com/pearsonappeng/tensor/validate"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 )
 

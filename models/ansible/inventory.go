@@ -3,9 +3,9 @@ package ansible
 import (
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/models/common"
-	"github.com/gin-gonic/gin"
 	"gopkg.in/mgo.v2/bson"
 )
 

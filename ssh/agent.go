@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"bytes"
+	"github.com/ScaleFT/sshkeys"
 	"github.com/Sirupsen/logrus"
 	"golang.org/x/crypto/ssh/agent"
 	"net"
@@ -9,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"github.com/ScaleFT/sshkeys"
 )
 
 // startAgent executes ssh-agent, and returns a Agent interface to it.

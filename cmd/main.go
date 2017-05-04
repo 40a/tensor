@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "LICENSE"); you may not use 
 http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
- */
+*/
 package main
 
 import (
@@ -23,6 +23,8 @@ import (
 	"github.com/pearsonappeng/tensor/util"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2/bson"
+	"golang.org/x/crypto/ssh/terminal"
+	"syscall"
 )
 
 func main() {
@@ -79,11 +81,26 @@ func doSetup() int {
 			return 1
 		}
 
-		user.Password = readNewline(" > Password: ", stdin)
-		if user.Password == "" {
+		fmt.Print(" > Password: ")
+		pwd, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil && string(pwd) == "" {
 			logrus.Fatal("\n Password is required\n")
 			return 1
 		}
+
+		fmt.Print("\n > Confirm password: ")
+		cpwd, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil && string(cpwd) == "" {
+			logrus.Fatal("\n Confirm password is required\n")
+			return 1
+		}
+
+		if string(pwd) != string(cpwd) {
+			logrus.Fatal("\n Password do not match\n")
+			return 1
+		}
+
+		user.Password = string(pwd)
 
 		pwdHash, _ := bcrypt.GenerateFromPassword([]byte(user.Password), 11)
 		user.Password = string(pwdHash)

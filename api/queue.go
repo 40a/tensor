@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/pearsonappeng/tensor/queue"
 	"github.com/gin-gonic/gin"
+	"github.com/pearsonappeng/tensor/queue"
 	"net/http"
 )
 
