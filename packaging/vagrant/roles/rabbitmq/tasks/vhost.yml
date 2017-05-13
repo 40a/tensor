@@ -1,0 +1,9 @@
+---
+
+- name: Add RabbitMQ vhosts
+  rabbitmq_vhost:
+    name: '{{ item.name }}'
+    node: 'rabbit@{{ ansible_hostname }}'
+    state: '{{ item.state | default("present") }}'
+    tracing: '{{ item.tracing | default("no") }}'
+  with_items: '{{ rabbitmq_vhosts }}'

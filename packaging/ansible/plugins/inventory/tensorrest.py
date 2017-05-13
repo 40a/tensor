@@ -41,6 +41,7 @@ import urllib
 import urlparse
 import requests
 
+
 class TokenAuth(requests.auth.AuthBase):
     def __init__(self, token):
         self.token = token
@@ -49,6 +50,7 @@ class TokenAuth(requests.auth.AuthBase):
         request.headers['Authorization'] = 'Bearer %s' % self.token
         return request
 
+
 class InventoryScript(object):
 
     def __init__(self, **options):
@@ -56,12 +58,6 @@ class InventoryScript(object):
 
     def get_data(self):
         parts = urlparse.urlsplit(self.base_url)
-        if parts.username and parts.password:
-            auth = (parts.username, parts.password)
-        elif self.auth_token:
-            auth = TokenAuth(self.auth_token)
-        else:
-            auth = None
         port = parts.port or (443 if parts.scheme == 'https' else 80)
         url = urlparse.urlunsplit([parts.scheme,
                                    '%s:%d' % (parts.hostname, port),
@@ -76,7 +72,7 @@ class InventoryScript(object):
             q['hostvars'] = 1
         url_path += '?%s' % urllib.urlencode(q)
         url = urlparse.urljoin(url, url_path)
-        response = requests.get(url, auth=auth)
+        response = requests.get(url, auth=TokenAuth(self.auth_token), verify=False)
         response.raise_for_status()
         sys.stdout.write(json.dumps(json.loads(response.content),
                                     indent=self.indent) + '\n')
@@ -90,9 +86,8 @@ class InventoryScript(object):
             self.auth_token = self.options.get('authtoken', '') or \
                 os.getenv('REST_API_TOKEN', '')
             parts = urlparse.urlsplit(self.base_url)
-            if not (parts.username and parts.password) and not self.auth_token:
-                raise ValueError('No username/password specified in REST API '
-                                 'URL, and no REST API token provided')
+            if not self.auth_token:
+                raise ValueError('No REST API token provided')
 
             # Command line argument takes precedence over environment
             # variable.
@@ -127,6 +122,7 @@ class InventoryScript(object):
                     sys.stderr.write('%s\n' % e.response)
             sys.exit(1)
 
+
 def main():
     parser = optparse.OptionParser()
     parser.add_option('-v', '--verbosity', action='store', dest='verbosity',
@@ -136,8 +132,7 @@ def main():
     parser.add_option('--traceback', action='store_true',
                       help='Raise on exception on error')
     parser.add_option('-u', '--url', dest='base_url', default='',
-                      help='Base URL to access REST API, including username '
-                      'and password for authentication (can also be specified'
+                      help='Base URL to access REST API, (can also be specified'
                       ' using REST_API_URL environment variable)')
     parser.add_option('--authtoken', dest='authtoken', default='',
                       help='Authentication token used to access REST API (can '
@@ -162,6 +157,7 @@ def main():
                       help='Indentation level for pretty printing output')
     options, args = parser.parse_args()
     InventoryScript(**vars(options)).run()
+
 
 if __name__ == '__main__':
     main()

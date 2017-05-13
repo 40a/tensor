@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"encoding/base64"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/securecookie"
 	"golang.org/x/crypto/bcrypt"
@@ -28,15 +29,13 @@ type MongoDBConfig struct {
 	ReplicaSet string   `yaml:"replica_set"`
 }
 
-type RedisConfig struct {
-	Host string `yaml:"host"`
-}
-
 type configType struct {
 	MongoDB MongoDBConfig `yaml:"mongodb"`
 
-	Redis RedisConfig `yaml:"redis"`
-	// Format `:port_num` eg, :3000
+	RabbitMQ string `yaml:"rabbitmq"`
+
+	// TCP address to listen on, ":http" if empty
+	Host string `yaml:"host"`
 	Port string `yaml:"port"`
 
 	// Tensor stores projects here
@@ -57,6 +56,18 @@ type configType struct {
 	SSLCertificateKey string `yaml:"ssl_certificate_key"`
 
 	Debug bool `yaml:"debug"`
+}
+
+func (c configType) GetAddress() string {
+	return c.Host + ":" + c.Port
+}
+
+func (c configType) GetUrl() (address string) {
+	address = "http://" + c.Host + ":" + c.Port
+	if c.TLSEnabled {
+		address = "https://" + c.Host + ":" + c.Port
+	}
+	return
 }
 
 var Config *configType
@@ -98,9 +109,9 @@ func init() {
 	}
 
 	if len(os.Getenv("TENSOR_PORT")) > 0 {
-		Config.Port = os.Getenv("TENSOR_PORT")
-	} else if len(Config.Port) == 0 {
-		Config.Port = ":3000"
+		Config.Host = os.Getenv("TENSOR_PORT")
+	} else if len(Config.Host) == 0 {
+		Config.Host = ":3000"
 	}
 
 	if len(os.Getenv("PROJECTS_HOME")) > 0 {
@@ -170,8 +181,8 @@ func init() {
 		Config.MongoDB.Hosts = strings.Split(os.Getenv("TENSOR_DB_HOSTS"), ";")
 	}
 
-	if len(os.Getenv("TENSOR_REDIS_HOST")) > 0 {
-		Config.Redis.Host = os.Getenv("TENSOR_REDIS_HOST")
+	if len(os.Getenv("TENSOR_RABBITMQ")) > 0 {
+		Config.RabbitMQ = os.Getenv("TENSOR_RABBITMQ")
 	}
 
 	// TLS configuration

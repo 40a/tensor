@@ -12,6 +12,8 @@ package main
 import (
 	"time"
 
+	"os"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/api"
@@ -31,27 +33,24 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	logrus.Infoln("Tensor:", util.Version)
-	logrus.Infoln("Port:", util.Config.Port)
+	logrus.Infoln("Port:", util.Config.Host)
 	logrus.Infoln("MongoDB:", util.Config.MongoDB.Username, util.Config.MongoDB.Hosts, util.Config.MongoDB.DbName)
 	logrus.Infoln("Projects Home:", util.Config.ProjectsHome)
-
 	if err := db.Connect(); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"Error": err.Error(),
 		}).Fatalln("Unable to initialize a connection to database")
+		os.Exit(1)
 	}
+	defer db.MongoDb.Session.Close()
 
-	// connect to redis queues. this can panic if redis server not available make sure
-	// the redis is up and running before running Tensor
-	if err := queue.Connect(); err != nil {
+	// Test Connectivity to RabbitMQ
+	if err := queue.TestConnect(); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"Error": err.Error(),
-		}).Fatalln("Unable to initialize a connection to redis")
+		}).Fatalln("Unable to initialize a connection to RabbitMQ")
+		os.Exit(1)
 	}
-
-	defer func() {
-		db.MongoDb.Session.Close()
-	}()
 
 	// Define custom validator
 	binding.Validator = &validate.Validator{}
@@ -70,16 +69,15 @@ func main() {
 	//Background tasks
 	go ansible.Run()
 	go terraform.Run()
-	go queue.RMQCleaner()
 
 	if util.Config.TLSEnabled {
-		if err := r.RunTLS(util.Config.Port, util.Config.SSLCertificate, util.Config.SSLCertificateKey); err != nil {
+		if err := r.RunTLS(util.Config.GetAddress(), util.Config.SSLCertificate, util.Config.SSLCertificateKey); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"Error": err.Error(),
 			})
 		}
 	} else {
-		if err := r.Run(util.Config.Port); err != nil {
+		if err := r.Run(util.Config.GetAddress()); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"Error": err.Error(),
 			})

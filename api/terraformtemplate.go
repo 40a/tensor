@@ -16,6 +16,8 @@ import (
 	"github.com/pearsonappeng/tensor/models/common"
 	"github.com/pearsonappeng/tensor/models/terraform"
 
+	"os"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/log/activity"
@@ -25,7 +27,6 @@ import (
 	"github.com/pearsonappeng/tensor/validate"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
-	"os"
 )
 
 // Keys for credential related items stored in the Gin Context
@@ -748,18 +749,24 @@ func (ctrl TJobTmplController) Launch(c *gin.Context) {
 		}
 	}
 
-	// Add the job to queue
-	jobQueue := queue.OpenTerraformQueue()
 	jobBytes, err := json.Marshal(runnerJob)
 	if err != nil {
-		AbortWithError(LogFields{Context: c, Status: http.StatusGatewayTimeout,
-			Message: "Error while queueing job",
+		AbortWithError(LogFields{Context: c, Status: http.StatusInternalServerError,
+			Message: "Error while encoding the job",
 			Log:     logrus.Fields{"Error": err.Error()},
 		})
 		return
 	}
 
-	jobQueue.PublishBytes(jobBytes)
+	// publish bytes to terraform queue
+	if err := queue.Publish(queue.Terraform, jobBytes); err != nil {
+		AbortWithError(LogFields{Context: c, Status: http.StatusGatewayTimeout,
+			Message: "Error while publishing to Queue",
+			Log:     logrus.Fields{"Error": err.Error()},
+		})
+		return
+	}
+
 	metadata.JobMetadata(&job)
 	c.JSON(http.StatusCreated, job)
 }

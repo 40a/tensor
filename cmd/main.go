@@ -22,8 +22,8 @@ import (
 
 	"github.com/pearsonappeng/tensor/util"
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/mgo.v2/bson"
 	"golang.org/x/crypto/ssh/terminal"
+	"gopkg.in/mgo.v2/bson"
 	"syscall"
 )
 

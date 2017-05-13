@@ -6,5 +6,5 @@
   roles:
     - tensor
     - mongodb
-    - redis
+    - rabbitmq
     - terraform

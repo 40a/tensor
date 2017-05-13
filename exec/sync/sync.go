@@ -13,6 +13,8 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
+	"path"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/exec/types"
@@ -21,7 +23,6 @@ import (
 	"github.com/pearsonappeng/tensor/queue"
 	"github.com/pearsonappeng/tensor/ssh"
 	"github.com/pearsonappeng/tensor/util"
-	"path"
 )
 
 func Sync(j types.SyncJob) {
@@ -256,8 +257,6 @@ func UpdateProject(p common.Project) (*types.SyncJob, error) {
 		runnerJob.SCM = credential
 	}
 
-	// Add the job to queue
-	jobQueue := queue.OpenAnsibleQueue()
 	jobBytes, err := json.Marshal(runnerJob)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -265,7 +264,14 @@ func UpdateProject(p common.Project) (*types.SyncJob, error) {
 		}).Errorln("Unable to marshal Job")
 		return nil, err
 	}
-	jobQueue.PublishBytes(jobBytes)
+
+	// publish bytes to ansible queue
+	if err := queue.Publish(queue.Ansible, jobBytes); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Error": err.Error(),
+		}).Errorln("Error while publishing to Queue")
+		return nil, err
+	}
 
 	return &runnerJob, nil
 }

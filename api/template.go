@@ -14,6 +14,8 @@ import (
 	"github.com/pearsonappeng/tensor/models/ansible"
 	"github.com/pearsonappeng/tensor/models/common"
 
+	"os"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/pearsonappeng/tensor/exec/sync"
@@ -25,7 +27,6 @@ import (
 	"github.com/pearsonappeng/tensor/validate"
 	"gopkg.in/gin-gonic/gin.v1/binding"
 	"gopkg.in/mgo.v2/bson"
-	"os"
 )
 
 // Keys for credential related items stored in the Gin Context
@@ -843,18 +844,24 @@ func (ctrl JobTemplateController) Launch(c *gin.Context) {
 		}
 	}
 
-	// Add the job to queue
-	jobQueue := queue.OpenAnsibleQueue()
 	jobBytes, err := json.Marshal(runnerJob)
 	if err != nil {
-		AbortWithError(LogFields{Context: c, Status: http.StatusGatewayTimeout,
-			Message: "Error while queueing job",
+		AbortWithError(LogFields{Context: c, Status: http.StatusInternalServerError,
+			Message: "Error while encoding the job",
 			Log:     logrus.Fields{"Error": err.Error()},
 		})
 		return
 	}
 
-	jobQueue.PublishBytes(jobBytes)
+	// publish bytes to ansible queue
+	if err := queue.Publish(queue.Ansible, jobBytes); err != nil {
+		AbortWithError(LogFields{Context: c, Status: http.StatusGatewayTimeout,
+			Message: "Error while publishing to Queue",
+			Log:     logrus.Fields{"Error": err.Error()},
+		})
+		return
+	}
+
 	metadata.JobMetadata(&job)
 	c.JSON(http.StatusCreated, job)
 }

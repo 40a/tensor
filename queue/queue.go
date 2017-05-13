@@ -1,47 +1,96 @@
 package queue
 
 import (
-	"os"
-
-	"github.com/adjust/uniuri"
-	"github.com/gamunu/rmq"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/pearsonappeng/tensor/util"
+	"github.com/streadway/amqp"
 )
 
 const (
-	// AnsibleQueue is the redis queue which stores jobs
-	AnsibleQueue = "ansibleq"
-	// TerraformQueue is the redis queue which stores jobs
-	TerraformQueue = "terraformq"
+	// Ansible is the redis queue which stores jobs
+	Ansible = "ansible"
+	// Terraform is the redis queue which stores jobs
+	Terraform = "terraform"
 )
 
-// Queue is to hold the redis connection created by
-// Connect function and make it available globally
-var Queue *rmq.RedisConnection
-
-// Connect creates a connection to Redis
-func Connect() (err error) {
-	hostname, e := os.Hostname()
-	// if in case Hostname fails generate randon uniuri
-	if e != nil {
-		hostname = uniuri.New()
-		logrus.WithFields(logrus.Fields{
-			"hostname": hostname,
-		}).Info("Coud not determine server hostname using random string for connection tag")
+// TestConnect will test the connectivity to rabbitmq
+func TestConnect() (err error) {
+	conn, err := amqp.Dial(util.Config.RabbitMQ)
+	if err != nil {
+		return
 	}
+	defer conn.Close()
 
-	Queue, err = rmq.OpenConnection("tensor_"+hostname, "tcp", util.Config.Redis.Host, 2)
+	ch, err := conn.Channel()
+	if err != nil {
+		return
+	}
+	defer ch.Close()
 	return
 }
 
-// OpenAnsibleQueue returns rmq.Queue
-func OpenAnsibleQueue() rmq.Queue {
-	return Queue.OpenQueue(AnsibleQueue)
-}
+// Publish publishes a given json message to a given queue
+// accepts string and array of bytes and returns a cleanup function and error
+func Publish(name string, job []byte) (err error) {
+	conn, err := amqp.Dial(util.Config.RabbitMQ)
 
-// OpenTerraformQueue returns rmq.Queue
-func OpenTerraformQueue() rmq.Queue {
-	return Queue.OpenQueue(TerraformQueue)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": name,
+			"Error": err.Error(),
+		}).Infoln("Could not contact RabbitMQ server")
+		return
+	}
+
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": name,
+			"Error": err.Error(),
+		}).Infoln("Failed to open a channel")
+		return
+	}
+
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		name,  // name
+		true,  // durable
+		false, // delete when unused
+		false, // exclusive
+		false, // no-wait
+		nil,   // arguments
+	)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": name,
+			"Error": err.Error(),
+		}).Infoln("Failed to declare a queue")
+		return
+	}
+
+	err = ch.Publish(
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,
+		amqp.Publishing{
+			DeliveryMode: amqp.Persistent,
+			ContentType:  "text/plain",
+			Body:         job,
+		})
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": name,
+			"Error": err.Error(),
+		}).Infoln("Failed to publish a message")
+		return
+	}
+
+	return
 }

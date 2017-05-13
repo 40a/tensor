@@ -1,0 +1,10 @@
+---
+
+- name: Check RabbitMQ status
+  command: 'rabbitmqctl status'
+  changed_when: False
+  register: rabbitmqctl_status
+
+- name: Debug RabbitMQ status
+  debug:
+    var: rabbitmqctl_status

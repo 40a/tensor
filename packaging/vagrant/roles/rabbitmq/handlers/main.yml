@@ -1,0 +1,12 @@
+---
+
+- name: Restart RabbitMQ server
+  service:
+    name: 'rabbitmq-server'
+    state: restarted
+
+- name: Reload systemd services and restart RabbitMQ
+  systemd:
+    name: 'rabbitmq-server'
+    state: restarted
+    daemon_reload: yes

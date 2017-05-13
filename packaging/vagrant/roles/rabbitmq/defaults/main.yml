@@ -1,0 +1,37 @@
+---
+
+# Plugins to enabled
+rabbitmq_plugins: []
+
+# VHOST
+rabbitmq_users:
+  - user:     tensor
+    password: tensor
+    vhost:    tensor
+    node:     rabbit             # Optional, defaults to "rabbit"
+    force:    no
+    tags:                        # Optional, user tags
+      - administrator
+  - user:     guest
+    state:    absent             # Optional, removes user (defaults to "present")
+
+rabbitmq_vhosts:
+  - name:     tensor
+    node:     rabbit             # Optional, defaults to "rabbit"
+    tracing:  no                 # Optional, defaults to "no"
+    state:    present            # Optional, defaults to "present"
+
+rabbitmq_policies:
+  - name:     HA Policy
+    vhost:    'tensor'           # Optional, defaults to "/"
+    pattern:  '.*'               # Optional, defaults to ".*"
+    tags:                        # Optional, defaults to "{}"
+      ha-mode: all
+      ha-sync-mode: automatic
+    state: present               # Optional, defaults to "present"
+
+# rabbitmq TCP configuration
+rabbitmq_tcp_address: ''
+rabbitmq_tcp_port: 5672
+rabbitmq_cluster: False
+rabbitmq_erlang_cookie: 'THISISACOOKIEMONSTER'

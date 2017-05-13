@@ -3,7 +3,6 @@ package ansible
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -13,82 +12,135 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/gamunu/rmq"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/exec/misc"
 	"github.com/pearsonappeng/tensor/exec/sync"
 	"github.com/pearsonappeng/tensor/exec/types"
 	"github.com/pearsonappeng/tensor/models/ansible"
 	"github.com/pearsonappeng/tensor/models/common"
+	"github.com/streadway/amqp"
+
+	"path/filepath"
 
 	"github.com/adjust/uniuri"
 	"github.com/pearsonappeng/tensor/queue"
 	"github.com/pearsonappeng/tensor/ssh"
 	"github.com/pearsonappeng/tensor/util"
-	"path/filepath"
 )
-
-// Consumer is implementation of rmq.Consumer interface
-type Consumer struct {
-	name   string
-	count  int
-	before time.Time
-}
-
-// NewConsumer is the entrypoint to runners.Consumer
-func NewConsumer(tag int) *Consumer {
-	return &Consumer{
-		name:   fmt.Sprintf("consumer%d", tag),
-		count:  0,
-		before: time.Now(),
-	}
-}
-
-// Consume delegates jobs to appropriate runners
-func (consumer *Consumer) Consume(delivery rmq.Delivery) {
-	jb := types.AnsibleJob{}
-	if err := json.Unmarshal([]byte(delivery.Payload()), &jb); err != nil {
-		// handle error
-		logrus.Warningln("Job delivery rejected")
-		delivery.Reject()
-		jobFail(&jb)
-		return
-	}
-
-	// perform task
-	delivery.Ack()
-	logrus.WithFields(logrus.Fields{
-		"Job ID": jb.Job.ID.Hex(),
-		"Name":   jb.Job.Name,
-	}).Infoln("Job successfuly received")
-
-	status(&jb, "pending")
-
-	logrus.WithFields(logrus.Fields{
-		"Job ID": jb.Job.ID.Hex(),
-		"Name":   jb.Job.Name,
-	}).Infoln("Job changed status to pending")
-
-	if jb.Job.JobType == ansible.JOBTYPE_UPDATE_JOB {
-		sync.Sync(types.SyncJob{
-			Job:           jb.Job,
-			JobTemplateID: jb.Template.ID,
-			ProjectID:     jb.Project.ID,
-			SCM:           jb.SCM,
-			Token:         jb.Token,
-			User:          jb.User,
-		})
-		return
-	}
-	ansibleRun(&jb)
-}
 
 // Run starts consuming jobs into a channel of size prefetchLimit
 func Run() {
-	q := queue.OpenAnsibleQueue()
+	conn, err := amqp.Dial(util.Config.RabbitMQ)
 
-	q.StartConsuming(1, 500*time.Millisecond)
-	q.AddConsumer(util.UniqueNew(), NewConsumer(1))
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Ansible,
+			"Error": err.Error(),
+		}).Infoln("Could not contact RabbitMQ server")
+		return
+	}
+
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Ansible,
+			"Error": err.Error(),
+		}).Infoln("Failed to open a channel")
+		return
+	}
+
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		queue.Ansible, // name
+		true,          // durable
+		false,         // delete when unused
+		false,         // exclusive
+		false,         // no-wait
+		nil,           // arguments
+	)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Ansible,
+			"Error": err.Error(),
+		}).Infoln("Failed to declare a queue")
+		return
+	}
+
+	err = ch.Qos(
+		1,     // prefetch count
+		0,     // prefetch size
+		false, // global
+	)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Ansible,
+			"Error": err.Error(),
+		}).Infoln("Failed to set QoS")
+		return
+	}
+
+	msgs, err := ch.Consume(
+		q.Name, // queue
+		"",     // consumer
+		false,  // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Ansible,
+			"Error": err.Error(),
+		}).Infoln("Failed to register a consumer")
+		return
+	}
+
+	for d := range msgs {
+		jb := types.AnsibleJob{}
+		if err := json.Unmarshal(d.Body, &jb); err != nil {
+			// handle error
+			logrus.Warningln("Job delivery rejected")
+			d.Reject(false)
+			jobFail(&jb)
+			continue
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"Job ID": jb.Job.ID.Hex(),
+			"Name":   jb.Job.Name,
+		}).Infoln("Job successfuly received")
+
+		status(&jb, "pending")
+
+		logrus.WithFields(logrus.Fields{
+			"Job ID": jb.Job.ID.Hex(),
+			"Name":   jb.Job.Name,
+		}).Infoln("Job changed status to pending")
+
+		if jb.Job.JobType == ansible.JOBTYPE_UPDATE_JOB {
+			sync.Sync(types.SyncJob{
+				Job:           jb.Job,
+				JobTemplateID: jb.Template.ID,
+				ProjectID:     jb.Project.ID,
+				SCM:           jb.SCM,
+				Token:         jb.Token,
+				User:          jb.User,
+			})
+			d.Ack(false)
+			continue
+		}
+		ansibleRun(&jb)
+		d.Ack(false)
+	}
+	logrus.Warningln("Consumer stopped")
 }
 
 func ansibleRun(j *types.AnsibleJob) {
@@ -282,6 +334,7 @@ func ansibleRun(j *types.AnsibleJob) {
 		j.Job.JobExplanation = err.Error()
 		j.Job.ResultStdout = string(b.Bytes())
 		jobFail(j)
+		timer.Stop()
 		return
 	}
 
@@ -368,9 +421,9 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 	// set job arguments, exclude unencrypted passwords etc.
 	j.Job.JobARGS = []string{strings.Join(j.Job.JobARGS, " ") + " " + j.Job.Playbook + "'"}
 	pargs = append(pargs, j.Job.Playbook)
-	logrus.Infoln("Job Arguments", append([]string{}, j.Job.JobARGS...))
 	cmd = exec.Command("proot", pargs...)
 	cmd.Dir = filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex())
+
 	cmd.Env = []string{
 		"TERM=xterm",
 		"PROJECT_PATH=" + filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()),
@@ -387,7 +440,7 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		"ANSIBLE_HOST_KEY_CHECKING=False",
 		"JOB_ID=" + j.Job.ID.Hex(),
 		"ANSIBLE_FORCE_COLOR=True",
-		"REST_API_URL=http://localhost" + util.Config.Port,
+		"REST_API_URL=" + util.Config.GetUrl(),
 		"INVENTORY_HOSTVARS=True",
 		"INVENTORY_ID=" + j.Inventory.ID.Hex(),
 		"SSH_AUTH_SOCK=" + socket,
@@ -411,7 +464,7 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		"ANSIBLE_HOST_KEY_CHECKING=False",
 		"JOB_ID=" + j.Job.ID.Hex(),
 		"ANSIBLE_FORCE_COLOR=True",
-		"REST_API_URL=http://localhost" + util.Config.Port,
+		"REST_API_URL=" + util.Config.GetUrl(),
 		"INVENTORY_HOSTVARS=True",
 		"INVENTORY_ID=" + j.Inventory.ID.Hex(),
 		"SSH_AUTH_SOCK=" + socket,
@@ -427,7 +480,7 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 	logrus.WithFields(logrus.Fields{
 		"Dir":         cmd.Dir,
 		"Environment": append([]string{}, cmd.Env...),
-	}).Infoln("Job Directory and Environment")
+	}).Debugln("Job Directory and Environment")
 	return cmd, func() {
 		if f != nil {
 			if err := os.RemoveAll(f.Name()); err != nil {

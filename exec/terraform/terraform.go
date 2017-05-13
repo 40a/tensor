@@ -3,7 +3,6 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -12,71 +11,122 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/gamunu/rmq"
 	"github.com/pearsonappeng/tensor/db"
 	"github.com/pearsonappeng/tensor/exec/misc"
 	"github.com/pearsonappeng/tensor/exec/types"
+	"github.com/streadway/amqp"
+
+	"io/ioutil"
+	"path"
+	"path/filepath"
 
 	"github.com/adjust/uniuri"
 	"github.com/pearsonappeng/tensor/queue"
 	"github.com/pearsonappeng/tensor/ssh"
 	"github.com/pearsonappeng/tensor/util"
 	"github.com/rodaine/hclencoder"
-	"io/ioutil"
-	"path"
-	"path/filepath"
 )
-
-// Consumer is implementation of rmq.Consumer interface
-type Consumer struct {
-	name   string
-	count  int
-	before time.Time
-}
-
-// NewConsumer is the entrypoint for runners.Consumer
-func NewConsumer(tag int) *Consumer {
-	return &Consumer{
-		name:   fmt.Sprintf("consumer%d", tag),
-		count:  0,
-		before: time.Now(),
-	}
-}
-
-// Consume will delegate jobs to appropriate runners
-func (consumer *Consumer) Consume(delivery rmq.Delivery) {
-	jb := types.TerraformJob{}
-	if err := json.Unmarshal([]byte(delivery.Payload()), &jb); err != nil {
-		// handle error
-		logrus.Warningln("TerraformJob delivery rejected")
-		delivery.Reject()
-		jobFail(&jb)
-		return
-	}
-
-	// perform task
-	delivery.Ack()
-	logrus.WithFields(logrus.Fields{
-		"Job ID": jb.Job.ID.Hex(),
-		"Name":   jb.Job.Name,
-	}).Infoln("TerraformJob successfuly received")
-
-	status(&jb, "pending")
-
-	logrus.WithFields(logrus.Fields{
-		"Terraform Job ID": jb.Job.ID.Hex(),
-		"Name":             jb.Job.Name,
-	}).Infoln("Terraform Job changed status to pending")
-
-	terraformRun(&jb)
-}
 
 // Run starts consuming jobs into a channel of size prefetchLimit
 func Run() {
-	q := queue.OpenTerraformQueue()
+	conn, err := amqp.Dial(util.Config.RabbitMQ)
 
-	q.StartConsuming(1, 500*time.Millisecond)
-	q.AddConsumer(util.UniqueNew(), NewConsumer(1))
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Terraform,
+			"Error": err.Error(),
+		}).Infoln("Could not contact RabbitMQ server")
+		return
+	}
+
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Terraform,
+			"Error": err.Error(),
+		}).Infoln("Failed to open a channel")
+		return
+	}
+
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		queue.Terraform, // name
+		true,            // durable
+		false,           // delete when unused
+		false,           // exclusive
+		false,           // no-wait
+		nil,             // arguments
+	)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Terraform,
+			"Error": err.Error(),
+		}).Infoln("Failed to declare a queue")
+		return
+	}
+
+	err = ch.Qos(
+		1,     // prefetch count
+		0,     // prefetch size
+		false, // global
+	)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Terraform,
+			"Error": err.Error(),
+		}).Infoln("Failed to set QoS")
+		return
+	}
+
+	msgs, err := ch.Consume(
+		q.Name, // queue
+		"",     // consumer
+		false,  // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"Queue": queue.Terraform,
+			"Error": err.Error(),
+		}).Infoln("Failed to register a consumer")
+		return
+	}
+
+	for d := range msgs {
+		jb := types.TerraformJob{}
+		if err := json.Unmarshal(d.Body, &jb); err != nil {
+			// handle error
+			logrus.Warningln("TerraformJob delivery rejected")
+			d.Reject(false)
+			jobFail(&jb)
+			continue
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"Job ID": jb.Job.ID.Hex(),
+			"Name":   jb.Job.Name,
+		}).Infoln("TerraformJob successfuly received")
+
+		status(&jb, "pending")
+
+		logrus.WithFields(logrus.Fields{
+			"Terraform Job ID": jb.Job.ID.Hex(),
+			"Name":             jb.Job.Name,
+		}).Infoln("Terraform Job changed status to pending")
+
+		terraformRun(&jb)
+		d.Ack(false)
+	}
 }
 
 func terraformRun(j *types.TerraformJob) {
@@ -278,6 +328,7 @@ func terraformRun(j *types.TerraformJob) {
 		j.Job.JobExplanation = err.Error()
 		j.Job.ResultStdout = string(b.Bytes())
 		jobFail(j)
+		timer.Stop()
 		return
 	}
 	timer.Stop()
@@ -287,7 +338,7 @@ func terraformRun(j *types.TerraformJob) {
 	jobSuccess(j)
 }
 
-// runPlaybook runs a Job using ansible-playbook command
+// getCmd returns cmd
 func getCmd(j *types.TerraformJob, socket string, pid int) (cmd *exec.Cmd, getCmd *exec.Cmd, cleanup func(), err error) {
 	// Generate directory paths and create directories
 	tmp := "/tmp/tensor_proot_" + uniuri.New() + "/"
@@ -334,7 +385,7 @@ func getCmd(j *types.TerraformJob, socket string, pid int) (cmd *exec.Cmd, getCm
 		"PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		"REST_API_TOKEN=" + j.Token,
 		"JOB_ID=" + j.Job.ID.Hex(),
-		"REST_API_URL=http://localhost" + util.Config.Port,
+		"REST_API_URL=" + util.Config.GetUrl(),
 		"SSH_AUTH_SOCK=" + socket,
 		"SSH_AGENT_PID=" + strconv.Itoa(pid),
 	}
@@ -351,7 +402,7 @@ func getCmd(j *types.TerraformJob, socket string, pid int) (cmd *exec.Cmd, getCm
 		"PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		"REST_API_TOKEN=" + strings.Repeat("*", len(j.Token)),
 		"JOB_ID=" + j.Job.ID.Hex(),
-		"REST_API_URL=http://localhost" + util.Config.Port,
+		"REST_API_URL=" + util.Config.GetUrl(),
 		"SSH_AUTH_SOCK=" + socket,
 		"SSH_AGENT_PID=" + strconv.Itoa(pid),
 	}
@@ -380,7 +431,7 @@ func getCmd(j *types.TerraformJob, socket string, pid int) (cmd *exec.Cmd, getCm
 	logrus.WithFields(logrus.Fields{
 		"Dir":         cmd.Dir,
 		"Environment": append([]string{}, cmd.Env...),
-	}).Infoln("Job Directory and Environment")
+	}).Debugln("Job Directory and Environment")
 
 	return cmd, getCmd, func() {
 		if f != nil {

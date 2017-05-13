@@ -1,0 +1,40 @@
+---
+
+- name: Configure RabbitMQ
+  template:
+    dest: '/etc/rabbitmq/rabbitmq.config'
+    group: 'rabbitmq'
+    mode: 0644
+    owner: 'rabbitmq'
+    src: 'rabbitmq.config.j2'
+  notify: Restart RabbitMQ server
+
+- name: RabbitMQ Environment-specific configuration
+  template:
+    dest: '/etc/rabbitmq/rabbitmq-env.conf'
+    group: 'rabbitmq'
+    mode: 0644
+    owner: 'rabbitmq'
+    src: 'rabbitmq-env.conf.j2'
+  notify: Restart RabbitMQ server
+  when: rabbitmq_conf_env is defined
+
+- name: RabbitMQ set Erlang cookie
+  template:
+    dest: '/var/lib/rabbitmq/.erlang.cookie'
+    group: 'rabbitmq'
+    owner: 'rabbitmq'
+    mode: 0400
+    src: 'erlang.cookie.j2'
+  notify: Restart RabbitMQ server
+  when: rabbitmq_cluster and rabbitmq_erlang_cookie is defined
+
+- name: Set up max file-descriptor limits in RabbitMQ systemd service
+  ini_file:
+    dest: /etc/systemd/system/rabbitmq-server.service.d/limits.conf
+    create: yes
+    section: Service
+    option: LimitNOFILE
+    value: '{{ rabbitmq_fd_limit }}'
+  notify: Reloaad systemd services and restart RabbitMQ
+  when: hostvars[inventory_hostname]['ansible_service_mgr'] == 'systemd' and rabbitmq_fd_limit is defined

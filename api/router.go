@@ -38,7 +38,6 @@ func Route(r *gin.Engine) {
 	{
 		v1.GET("/", GetAPIInfo)
 		v1.GET("/ping", GetPing)
-		v1.GET("/queue", QueueStats)
 		v1.POST("/authtoken", jwt.HeaderAuthMiddleware.LoginHandler)
 
 		v1.Use(jwt.HeaderAuthMiddleware.MiddlewareFunc())

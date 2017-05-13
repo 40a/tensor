@@ -1,0 +1,18 @@
+[
+  {rabbit, [
+{% if rabbitmq_tcp_address != '' %}
+    {tcp_listeners, [{"{{ rabbitmq_tcp_address }}", {{ rabbitmq_tcp_port }}}]}
+{% else %}
+    {tcp_listeners, [{{ rabbitmq_tcp_port }}]}
+{% endif %}
+
+{% if rabbitmq_cluster %}
+      ,
+    {cluster_nodes, {[
+{% for host in ansible_play_hosts %}
+                      'rabbit@{{ hostvars[host]['ansible_hostname'] }}'{% if not loop.last %},{% endif %} 
+{% endfor %}
+                     ],disc}}
+{% endif %}
+  ]}
+].
