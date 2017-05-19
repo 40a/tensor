@@ -655,7 +655,7 @@ func (ctrl JobTemplateController) Launch(c *gin.Context) {
 		BecomeEnabled:       template.BecomeEnabled,
 		NetworkCredentialID: template.NetworkCredentialID,
 		CloudCredentialID:   template.CloudCredentialID,
-		SCMCredentialID:     nil,
+		SCMCredentialID:     "",
 		CreatedByID:         user.ID,
 		ModifiedByID:        user.ID,
 		Created:             time.Now(),

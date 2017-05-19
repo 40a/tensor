@@ -176,7 +176,7 @@ func (ctrl ProjectController) Create(c *gin.Context) {
 		return
 	}
 	// check whether the scm credential exist or not
-	if req.ScmCredentialID != nil {
+	if req.ScmCredentialID != "" {
 		if !req.SCMCredentialExist() {
 			AbortWithError(LogFields{Context: c, Status: http.StatusBadRequest,
 				Message: "SCM Credential does not exists.",
@@ -282,7 +282,7 @@ func (ctrl ProjectController) Update(c *gin.Context) {
 		return
 	}
 
-	if req.ScmCredentialID != nil && !req.SCMCredentialExist() {
+	if req.ScmCredentialID != "" && !req.SCMCredentialExist() {
 		AbortWithError(LogFields{Context: c, Status: http.StatusBadRequest,
 			Message: "SCM Credential does not exists.",
 		})

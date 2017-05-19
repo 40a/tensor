@@ -212,7 +212,7 @@ func UpdateProject(p common.Project) (*types.SyncJob, error) {
 		ModifiedByID: p.ModifiedByID,
 	}
 
-	if p.ScmCredentialID != nil {
+	if p.ScmCredentialID != "" {
 		job.SCMCredentialID = p.ScmCredentialID
 	}
 
@@ -246,9 +246,9 @@ func UpdateProject(p common.Project) (*types.SyncJob, error) {
 		Project: p,
 	}
 
-	if job.SCMCredentialID != nil {
+	if job.SCMCredentialID != "" {
 		var credential common.Credential
-		if err := db.Credentials().FindId(*job.SCMCredentialID).One(&credential); err != nil {
+		if err := db.Credentials().FindId(job.SCMCredentialID).One(&credential); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"Error": err.Error(),
 			}).Errorln("Error while getting SCM Credential")

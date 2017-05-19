@@ -29,7 +29,7 @@ type Project struct {
 	ScmBranch             string         `bson:"scm_branch,omitempty" json:"scm_branch"`
 	ScmClean              bool           `bson:"scm_clean,omitempty" json:"scm_clean"`
 	ScmDeleteOnUpdate     bool           `bson:"scm_delete_on_update,omitempty" json:"scm_delete_on_update"`
-	ScmCredentialID       *bson.ObjectId `bson:"credentail_id,omitempty" json:"credential"`
+	ScmCredentialID       bson.ObjectId `bson:"credential_id,omitempty" json:"credential"`
 	ScmDeleteOnNextUpdate bool           `bson:"scm_delete_on_next_update,omitempty" json:"scm_delete_on_next_update"`
 	ScmUpdateOnLaunch     bool           `bson:"scm_update_on_launch,omitempty" json:"scm_update_on_launch"`
 	ScmUpdateCacheTimeout int            `bson:"scm_update_cache_timeout,omitempty" json:"scm_update_cache_timeout"`
@@ -63,7 +63,7 @@ func (p Project) GetRoles() []AccessControl {
 
 func (h Project) GetCredential() (Credential, error) {
 	var cred Credential
-	err := db.Credentials().FindId(*h.ScmCredentialID).One(&cred)
+	err := db.Credentials().FindId(h.ScmCredentialID).One(&cred)
 	return cred, err
 }
 

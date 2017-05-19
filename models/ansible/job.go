@@ -50,7 +50,7 @@ type Job struct {
 	JobTemplateID       bson.ObjectId  `bson:"job_template_id,omitempty" json:"job_template"`
 	ProjectID           bson.ObjectId  `bson:"project_id,omitempty" json:"project"`
 	BecomeEnabled       bool           `bson:"become_enabled" json:"become_enabled"`
-	SCMCredentialID     *bson.ObjectId `bson:"scm_credential_id,omitempty" json:"scm_credential"`
+	SCMCredentialID     bson.ObjectId `bson:"scm_credential_id,omitempty" json:"scm_credential"`
 	NetworkCredentialID *bson.ObjectId `bson:"network_credential_id,omitempty" json:"network_credential"`
 	CloudCredentialID   *bson.ObjectId `bson:"cloud_credential_id,omitempty" json:"cloud_credential"`
 	MachineCredentialID *bson.ObjectId `bson:"credential_id,omitempty" json:"credential"`

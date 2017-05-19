@@ -34,8 +34,8 @@ func ProjectMetadata(p *common.Project) {
 		related["playbooks"] = "/v1/projects/" + ID + "/playbooks"
 	}
 
-	if p.ScmCredentialID != nil {
-		related["credential"] = "/v1/credentials/" + (*p.ScmCredentialID).Hex()
+	if p.ScmCredentialID != "" {
+		related["credential"] = "/v1/credentials/" + p.ScmCredentialID.Hex()
 	}
 	if p.LastJob != nil {
 		related["last_job"] = "/v1/project_updates/" + (*p.LastJob).Hex()
@@ -114,8 +114,8 @@ func projectSummary(p *common.Project) {
 		},
 	}
 
-	if p.ScmCredentialID != nil {
-		if err := db.Credentials().FindId(*p.ScmCredentialID).One(&cred); err != nil {
+	if p.ScmCredentialID != "" {
+		if err := db.Credentials().FindId(p.ScmCredentialID).One(&cred); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"Project":       p.Name,
 				"Project ID":    p.ID.Hex(),
