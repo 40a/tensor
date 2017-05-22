@@ -108,10 +108,16 @@ func init() {
 		}
 	}
 
+	if len(os.Getenv("TENSOR_HOST")) > 0 {
+		Config.Host = os.Getenv("TENSOR_HOST")
+	} else if len(Config.Host) == 0 {
+		Config.Host = "0.0.0.0"
+	}
+
 	if len(os.Getenv("TENSOR_PORT")) > 0 {
 		Config.Host = os.Getenv("TENSOR_PORT")
 	} else if len(Config.Host) == 0 {
-		Config.Host = ":3000"
+		Config.Port = "80"
 	}
 
 	if len(os.Getenv("PROJECTS_HOME")) > 0 {

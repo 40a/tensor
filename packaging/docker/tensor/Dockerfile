@@ -40,8 +40,8 @@ RUN groupadd -r tensor && useradd -r -m -g tensor tensor && \
     requests_kerberos && \
     apt-get -q -y upgrade && apt-get -y -q --no-install-recommends install -f tensor && \
     #install terraform
-    cd /tmp/ && curl -O https://releases.hashicorp.com/terraform/0.8.8/terraform_0.8.8_linux_amd64.zip && \
-    unzip terraform_0.8.8_linux_amd64.zip -d /opt/terraform && \
+    cd /tmp/ && curl -O https://releases.hashicorp.com/terraform/0.9.5/terraform_0.9.5_linux_amd64.zip && \
+    unzip terraform_0.9.5_linux_amd64.zip -d /opt/terraform && \
     ln -s /opt/terraform/terraform /usr/bin/terraform && \
     # clean up
     apt-get --purge remove -y -q --auto-remove build-essential python-pip curl \
@@ -53,7 +53,7 @@ RUN groupadd -r tensor && useradd -r -m -g tensor tensor && \
     rm /etc/tensor.conf && rm /etc/krb5.conf
 
 
-ENV TENSOR_PORT=8010 PROJECTS_HOME="/data" \
+ENV TENSOR_HOST="0.0.0.0" TENSOR_PORT=80 PROJECTS_HOME="/data" \
     TENSOR_DB_USER=tensor TENSOR_DB_PASSWORD=tensor TENSOR_DB_NAME=tensordb \
     TENSOR_DB_REPLICA="" TENSOR_DB_HOSTS="mongo:27017" KRB5_CONFIG="/data/krb5.conf" \
     ANSIBLE_CONFIG="/etc/ansible/ansible.cfg" TENSOR_REDIS_HOST="redis:6379"

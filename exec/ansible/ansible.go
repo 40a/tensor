@@ -360,6 +360,21 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		ProjectRoot:     filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()),
 		CredentialPath:  "/tmp/tensor_" + uniuri.New(),
 	}
+
+	// add proot and ansible parameters
+	pargs := []string{"-v", "0", "-r", "/",
+		"-b", j.Paths.Etc + ":/etc/tensor",
+		"-b", j.Paths.Tmp + ":/tmp",
+		"-b", j.Paths.VarLib + ":/var/lib/tensor",
+		"-b", j.Paths.VarLibJobStatus + ":/var/lib/tensor/job_status",
+		"-b", j.Paths.VarLibProjects + ":" + util.Config.ProjectsHome,
+		"-b", j.Paths.VarLog + ":/var/log",
+		"-b", j.Paths.TmpRand + ":" + j.Paths.TmpRand,
+		"-b", filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()) + ":" + filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()),
+		"-b", "/var/lib/tensor:/var/lib/tensor",
+		"-w", filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()),
+	}
+
 	// create job directories
 	createTmpDirs(j)
 	// ansible-playbook parameters
@@ -382,7 +397,7 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		}
 		// if credential type is windows the issue a kinit to acquire a kerberos ticket
 		if len(j.Machine.Password) > 0 && j.Machine.Kind == common.CredentialKindWIN {
-			kinit(*j)
+			kinit(*j, pargs)
 		}
 	}
 
@@ -400,19 +415,6 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		if len(j.Machine.BecomePassword) > 0 {
 			pSecure = append(pSecure, "-e", "'ansible_become_pass="+string(util.Decipher(j.Machine.BecomePassword))+"'")
 		}
-	}
-	// add proot and ansible parameters
-	pargs := []string{"-v", "0", "-r", "/",
-		"-b", j.Paths.Etc + ":/etc/tensor",
-		"-b", j.Paths.Tmp + ":/tmp",
-		"-b", j.Paths.VarLib + ":/var/lib/tensor",
-		"-b", j.Paths.VarLibJobStatus + ":/var/lib/tensor/job_status",
-		"-b", j.Paths.VarLibProjects + ":" + util.Config.ProjectsHome,
-		"-b", j.Paths.VarLog + ":/var/log",
-		"-b", j.Paths.TmpRand + ":" + j.Paths.TmpRand,
-		"-b", filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()) + ":" + filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()),
-		"-b", "/var/lib/tensor:/var/lib/tensor",
-		"-w", filepath.Join(util.Config.ProjectsHome, j.Project.ID.Hex()),
 	}
 	pargs = append(pargs, pPlaybook...)
 	j.Job.JobARGS = pargs
@@ -578,13 +580,16 @@ func buildParams(j types.AnsibleJob, params []string) []string {
 	return params
 }
 
-func kinit(j types.AnsibleJob) error {
+func kinit(j types.AnsibleJob, pargs []string) error {
 	uname := j.Machine.Username
 	// if credential domain specified
 	if len(j.Machine.Domain) > 0 {
 		uname = j.Machine.Username + "@" + j.Machine.Domain
 	}
-	kinit := exec.Command("kinit", uname)
+
+	args := append(pargs, "kinit", uname)
+
+	kinit := exec.Command("proot", args...)
 	kinit.Env = os.Environ()
 	stdin, err := kinit.StdinPipe()
 	if err != nil {
@@ -598,6 +603,8 @@ func kinit(j types.AnsibleJob) error {
 	if err := kinit.Start(); err != nil {
 		return err
 	}
+
+	kinit.Wait();
 
 	return nil
 }
