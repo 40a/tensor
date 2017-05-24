@@ -3,7 +3,6 @@ package ansible
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -30,117 +29,120 @@ import (
 
 // Run starts consuming jobs into a channel of size prefetchLimit
 func Run() {
-	conn, err := amqp.Dial(util.Config.RabbitMQ)
+	for {
+		logrus.Warningln("Starting Ansible consumer")
+		conn, err := amqp.Dial(util.Config.RabbitMQ)
 
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Ansible,
-			"Error": err.Error(),
-		}).Infoln("Could not contact RabbitMQ server")
-		return
-	}
-
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Ansible,
-			"Error": err.Error(),
-		}).Infoln("Failed to open a channel")
-		return
-	}
-
-	defer ch.Close()
-
-	q, err := ch.QueueDeclare(
-		queue.Ansible, // name
-		true,          // durable
-		false,         // delete when unused
-		false,         // exclusive
-		false,         // no-wait
-		nil,           // arguments
-	)
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Ansible,
-			"Error": err.Error(),
-		}).Infoln("Failed to declare a queue")
-		return
-	}
-
-	err = ch.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
-	)
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Ansible,
-			"Error": err.Error(),
-		}).Infoln("Failed to set QoS")
-		return
-	}
-
-	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		false,  // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
-	)
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Ansible,
-			"Error": err.Error(),
-		}).Infoln("Failed to register a consumer")
-		return
-	}
-
-	for d := range msgs {
-		jb := types.AnsibleJob{}
-		if err := json.Unmarshal(d.Body, &jb); err != nil {
-			// handle error
-			logrus.Warningln("Job delivery rejected")
-			d.Reject(false)
-			jobFail(&jb)
-			continue
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Ansible,
+				"Error": err.Error(),
+			}).Errorln("Could not contact RabbitMQ server")
+			return
 		}
 
-		logrus.WithFields(logrus.Fields{
-			"Job ID": jb.Job.ID.Hex(),
-			"Name":   jb.Job.Name,
-		}).Infoln("Job successfuly received")
+		defer conn.Close()
 
-		status(&jb, "pending")
+		ch, err := conn.Channel()
 
-		logrus.WithFields(logrus.Fields{
-			"Job ID": jb.Job.ID.Hex(),
-			"Name":   jb.Job.Name,
-		}).Infoln("Job changed status to pending")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Ansible,
+				"Error": err.Error(),
+			}).Errorln("Failed to open a channel")
+			return
+		}
 
-		if jb.Job.JobType == ansible.JOBTYPE_UPDATE_JOB {
-			sync.Sync(types.SyncJob{
-				Job:           jb.Job,
-				JobTemplateID: jb.Template.ID,
-				ProjectID:     jb.Project.ID,
-				SCM:           jb.SCM,
-				Token:         jb.Token,
-				User:          jb.User,
-			})
+		defer ch.Close()
+
+		q, err := ch.QueueDeclare(
+			queue.Ansible, // name
+			true, // durable
+			false, // delete when unused
+			false, // exclusive
+			false, // no-wait
+			nil, // arguments
+		)
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Ansible,
+				"Error": err.Error(),
+			}).Errorln("Failed to declare a queue")
+			return
+		}
+
+		err = ch.Qos(
+			1, // prefetch count
+			0, // prefetch size
+			false, // global
+		)
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Ansible,
+				"Error": err.Error(),
+			}).Errorln("Failed to set QoS")
+			return
+		}
+
+		msgs, err := ch.Consume(
+			q.Name, // queue
+			"", // consumer
+			false, // auto-ack
+			false, // exclusive
+			false, // no-local
+			false, // no-wait
+			nil, // args
+		)
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Ansible,
+				"Error": err.Error(),
+			}).Errorln("Failed to register a consumer")
+			return
+		}
+
+		for d := range msgs {
+			jb := types.AnsibleJob{}
+			if err := json.Unmarshal(d.Body, &jb); err != nil {
+				// handle error
+				logrus.Warningln("Job delivery rejected")
+				d.Reject(false)
+				jobFail(&jb)
+				continue
+			}
+
+			logrus.WithFields(logrus.Fields{
+				"Job ID": jb.Job.ID.Hex(),
+				"Name":   jb.Job.Name,
+			}).Infoln("Job successfuly received")
+
+			status(&jb, "pending")
+
+			logrus.WithFields(logrus.Fields{
+				"Job ID": jb.Job.ID.Hex(),
+				"Name":   jb.Job.Name,
+			}).Infoln("Job changed status to pending")
+
+			if jb.Job.JobType == ansible.JOBTYPE_UPDATE_JOB {
+				sync.Sync(types.SyncJob{
+					Job:           jb.Job,
+					JobTemplateID: jb.Template.ID,
+					ProjectID:     jb.Project.ID,
+					SCM:           jb.SCM,
+					Token:         jb.Token,
+					User:          jb.User,
+				})
+				d.Ack(false)
+				continue
+			}
+			ansibleRun(&jb)
 			d.Ack(false)
-			continue
 		}
-		ansibleRun(&jb)
-		d.Ack(false)
+		logrus.Warningln("Ansible consumer stopped")
 	}
-	logrus.Warningln("Consumer stopped")
 }
 
 func ansibleRun(j *types.AnsibleJob) {
@@ -322,7 +324,7 @@ func ansibleRun(j *types.AnsibleJob) {
 	}
 
 	var timer *time.Timer
-	timer = time.AfterFunc(time.Duration(util.Config.AnsibleJobTimeOut)*time.Second, func() {
+	timer = time.AfterFunc(time.Duration(util.Config.AnsibleJobTimeOut) * time.Second, func() {
 		logrus.Println("Killing the process. Execution exceeded threashold value")
 		cmd.Process.Kill()
 	})
@@ -392,12 +394,9 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 			uname = j.Machine.Username + "@" + j.Machine.Domain
 		}
 		pPlaybook = append(pPlaybook, "-u", uname)
-		if len(j.Machine.Password) > 0 && j.Machine.Kind == common.CredentialKindSSH {
-			pSecure = append(pSecure, "-e", "ansible_ssh_pass="+string(util.Decipher(j.Machine.Password))+"")
-		}
-		// if credential type is windows the issue a kinit to acquire a kerberos ticket
-		if len(j.Machine.Password) > 0 && j.Machine.Kind == common.CredentialKindWIN {
-			kinit(*j, pargs)
+		pPlaybook = append(pPlaybook, "-e", "ansible_user=" + uname) // Windows
+		if len(j.Machine.Password) > 0 {
+			pSecure = append(pSecure, "-e", "ansible_password=" + string(util.Decipher(j.Machine.Password)))
 		}
 	}
 
@@ -405,15 +404,15 @@ func getCmd(j *types.AnsibleJob, socket string, pid int) (cmd *exec.Cmd, cleanup
 		pPlaybook = append(pPlaybook, "-b")
 		// default become method is sudo
 		if len(j.Machine.BecomeMethod) > 0 {
-			pPlaybook = append(pPlaybook, "--become-method="+j.Machine.BecomeMethod)
+			pPlaybook = append(pPlaybook, "--become-method=" + j.Machine.BecomeMethod)
 		}
 		// default become user is root
 		if len(j.Machine.BecomeUsername) > 0 {
-			pPlaybook = append(pPlaybook, "--become-user="+j.Machine.BecomeUsername)
+			pPlaybook = append(pPlaybook, "--become-user=" + j.Machine.BecomeUsername)
 		}
 		// for now this is more convenient than --ask-become-pass with sshpass
 		if len(j.Machine.BecomePassword) > 0 {
-			pSecure = append(pSecure, "-e", "'ansible_become_pass="+string(util.Decipher(j.Machine.BecomePassword))+"'")
+			pSecure = append(pSecure, "-e", "ansible_become_password=" + string(util.Decipher(j.Machine.BecomePassword)))
 		}
 	}
 	pargs = append(pargs, pPlaybook...)
@@ -554,14 +553,14 @@ func buildParams(j types.AnsibleJob, params []string) []string {
 	}
 	// --skip-tags=SKIP_TAGS
 	if len(j.Job.SkipTags) > 0 {
-		params = append(params, "--skip-tags="+j.Job.SkipTags)
+		params = append(params, "--skip-tags=" + j.Job.SkipTags)
 	}
 	// --force-handlers
 	if j.Job.ForceHandlers {
 		params = append(params, "--force-handlers")
 	}
 	if len(j.Job.StartAtTask) > 0 {
-		params = append(params, "--start-at-task="+j.Job.StartAtTask)
+		params = append(params, "--start-at-task=" + j.Job.StartAtTask)
 	}
 	extras := map[string]interface{}{
 		"tensor_job_template_name": j.Template.Name,
@@ -578,35 +577,6 @@ func buildParams(j types.AnsibleJob, params []string) []string {
 	}
 	params = append(params, "-e", string(rp))
 	return params
-}
-
-func kinit(j types.AnsibleJob, pargs []string) error {
-	uname := j.Machine.Username
-	// if credential domain specified
-	if len(j.Machine.Domain) > 0 {
-		uname = j.Machine.Username + "@" + j.Machine.Domain
-	}
-
-	args := append(pargs, "kinit", uname)
-
-	kinit := exec.Command("proot", args...)
-	kinit.Env = os.Environ()
-	stdin, err := kinit.StdinPipe()
-	if err != nil {
-		return err
-	}
-	go func() {
-		defer stdin.Close()
-		io.WriteString(stdin, string(util.Decipher(j.Machine.Password)))
-	}()
-
-	if err := kinit.Start(); err != nil {
-		return err
-	}
-
-	kinit.Wait();
-
-	return nil
 }
 
 func createTmpDirs(j *types.AnsibleJob) (err error) {

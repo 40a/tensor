@@ -37,7 +37,8 @@ RUN groupadd -r tensor && useradd -r -m -g tensor tensor && \
     apache-libcloud \
     boto \
     kerberos \
-    requests_kerberos && \
+    requests_kerberos \
+    "pywinrm[credssp]" && \
     apt-get -q -y upgrade && apt-get -y -q --no-install-recommends install -f tensor && \
     #install terraform
     cd /tmp/ && curl -O https://releases.hashicorp.com/terraform/0.9.5/terraform_0.9.5_linux_amd64.zip && \

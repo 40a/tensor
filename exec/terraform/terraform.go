@@ -29,103 +29,107 @@ import (
 
 // Run starts consuming jobs into a channel of size prefetchLimit
 func Run() {
-	conn, err := amqp.Dial(util.Config.RabbitMQ)
+	for {
+		logrus.Infoln("Starting Terraform consumer")
+		conn, err := amqp.Dial(util.Config.RabbitMQ)
 
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Terraform,
-			"Error": err.Error(),
-		}).Infoln("Could not contact RabbitMQ server")
-		return
-	}
-
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Terraform,
-			"Error": err.Error(),
-		}).Infoln("Failed to open a channel")
-		return
-	}
-
-	defer ch.Close()
-
-	q, err := ch.QueueDeclare(
-		queue.Terraform, // name
-		true,            // durable
-		false,           // delete when unused
-		false,           // exclusive
-		false,           // no-wait
-		nil,             // arguments
-	)
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Terraform,
-			"Error": err.Error(),
-		}).Infoln("Failed to declare a queue")
-		return
-	}
-
-	err = ch.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
-	)
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Terraform,
-			"Error": err.Error(),
-		}).Infoln("Failed to set QoS")
-		return
-	}
-
-	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		false,  // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
-	)
-
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"Queue": queue.Terraform,
-			"Error": err.Error(),
-		}).Infoln("Failed to register a consumer")
-		return
-	}
-
-	for d := range msgs {
-		jb := types.TerraformJob{}
-		if err := json.Unmarshal(d.Body, &jb); err != nil {
-			// handle error
-			logrus.Warningln("TerraformJob delivery rejected")
-			d.Reject(false)
-			jobFail(&jb)
-			continue
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Terraform,
+				"Error": err.Error(),
+			}).Errorln("Could not contact RabbitMQ server")
+			return
 		}
 
-		logrus.WithFields(logrus.Fields{
-			"Job ID": jb.Job.ID.Hex(),
-			"Name":   jb.Job.Name,
-		}).Infoln("TerraformJob successfuly received")
+		defer conn.Close()
 
-		status(&jb, "pending")
+		ch, err := conn.Channel()
 
-		logrus.WithFields(logrus.Fields{
-			"Terraform Job ID": jb.Job.ID.Hex(),
-			"Name":             jb.Job.Name,
-		}).Infoln("Terraform Job changed status to pending")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Terraform,
+				"Error": err.Error(),
+			}).Errorln("Failed to open a channel")
+			return
+		}
 
-		terraformRun(&jb)
-		d.Ack(false)
+		defer ch.Close()
+
+		q, err := ch.QueueDeclare(
+			queue.Terraform, // name
+			true, // durable
+			false, // delete when unused
+			false, // exclusive
+			false, // no-wait
+			nil, // arguments
+		)
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Terraform,
+				"Error": err.Error(),
+			}).Errorln("Failed to declare a queue")
+			return
+		}
+
+		err = ch.Qos(
+			1, // prefetch count
+			0, // prefetch size
+			false, // global
+		)
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Terraform,
+				"Error": err.Error(),
+			}).Errorln("Failed to set QoS")
+			return
+		}
+
+		msgs, err := ch.Consume(
+			q.Name, // queue
+			"", // consumer
+			false, // auto-ack
+			false, // exclusive
+			false, // no-local
+			false, // no-wait
+			nil, // args
+		)
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"Queue": queue.Terraform,
+				"Error": err.Error(),
+			}).Errorln("Failed to register a consumer")
+			return
+		}
+
+		for d := range msgs {
+			jb := types.TerraformJob{}
+			if err := json.Unmarshal(d.Body, &jb); err != nil {
+				// handle error
+				logrus.Warningln("TerraformJob delivery rejected")
+				d.Reject(false)
+				jobFail(&jb)
+				continue
+			}
+
+			logrus.WithFields(logrus.Fields{
+				"Job ID": jb.Job.ID.Hex(),
+				"Name":   jb.Job.Name,
+			}).Infoln("TerraformJob successfuly received")
+
+			status(&jb, "pending")
+
+			logrus.WithFields(logrus.Fields{
+				"Terraform Job ID": jb.Job.ID.Hex(),
+				"Name":             jb.Job.Name,
+			}).Infoln("Terraform Job changed status to pending")
+
+			terraformRun(&jb)
+			d.Ack(false)
+		}
+		logrus.Warningln("Terraform consumer stopped")
 	}
 }
 
@@ -317,7 +321,7 @@ func terraformRun(j *types.TerraformJob) {
 		return
 	}
 	var timer *time.Timer
-	timer = time.AfterFunc(time.Duration(util.Config.TerraformJobTimeOut)*time.Second, func() {
+	timer = time.AfterFunc(time.Duration(util.Config.TerraformJobTimeOut) * time.Second, func() {
 		logrus.Println("Killing the process. Execution exceeded threashold value")
 		cmd.Process.Kill()
 	})
@@ -490,14 +494,14 @@ func buildParams(j *types.TerraformJob, params []string) []string {
 			}).Errorln("Could not marshal extra vars")
 		}
 
-		path := path.Join(j.Paths.TmpRand, uniuri.NewLen(5)+".tfvars")
+		path := path.Join(j.Paths.TmpRand, uniuri.NewLen(5) + ".tfvars")
 		if err := ioutil.WriteFile(path, vars, 0600); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"Error": err,
 			}).Errorln("Could not write extra vars to a variable file")
 		}
 
-		params = append(params, "-var-file="+path)
+		params = append(params, "-var-file=" + path)
 	}
 
 	if len(j.Job.Directory) > 0 {
